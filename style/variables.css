@@ -1,0 +1,37 @@
+:root {
+    /* NASA Industrial Base */
+    --ui-bg-light: #86a4d7;
+    --ui-bg-dark: #0B3D91;
+    --ui-bg-dark-bg: #082d6c;
+    --ui-bg-dark-bg-2: #103c87;
+    --ui-bg-panel: #162035;
+    --ui-bg-panel-alpha: rgba(22, 32, 53, 0.9);
+    --text-primary: #F8F9FA;
+    --text-secondary: #AAB0C0;
+    --text-muted: #AAB0C0;
+
+    --ui-on-bg-dark-bg: #071f49;
+
+    /* Mars & Environment */
+    --mars-text: #e9c4bc;
+    --mars-rust: #be482a;
+    --mars-rust-light: #d15638;
+    --mars-soil: #8c3629;
+    --color-primary: #9f3c23;
+
+    /* Tycoon Action Colors */
+    --action-upgrade: #25a55a;
+    --action-upgrade-border: #1a7841;
+    --action-upgrade-text: #d9f3e3;
+
+    --action-unload: #e02929;
+    --action-unload-border: #a02020;
+    --action-unload-text: #ffd2d2;
+
+    --action-expensive: #E67E22;
+    --currency-gold: #F1C40F;
+    --alert-danger: #E74C3C;
+
+    --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --shadow-button: 0 4px 0 rgba(0, 0, 0, 0.2);
+}

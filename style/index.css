@@ -1,0 +1,15 @@
+/* Main stylesheet - imports all component styles */
+
+@import './variables.css';
+@import './base.css';
+@import './header.css';
+@import './buttons.css';
+@import './modals.css';
+@import './level.css';
+@import './views.css';
+
+* {
+    -webkit-tap-highlight-color: transparent;
+    /* Removes the default focus ring for mouse clicks */
+    outline: none;
+}

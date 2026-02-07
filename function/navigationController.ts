@@ -1,0 +1,773 @@
+/**
+ * Navigation and View Management System
+ * Handles the bottom navigation bar and view switching
+ */
+
+import * as GUI from './gui';
+import type { GameSession } from './models/sessionModel';
+import type { Company, Colony } from './models/company';
+import type { Rocket } from './models/storage';
+import { modalManager, ModalType } from './modalManager';
+import { GoodsRegistry } from './models/goodsRegistry';
+import { Good, ItemPosition } from './models/good';
+import { hudController } from './hudController';
+
+export enum ViewType {
+    HOME = 'home',
+    LOCATIONS = 'locations',
+    ROCKETS = 'rockets',
+    COLONIES = 'colonies',
+    BUILDINGS = 'buildings'
+}
+
+export interface ViewManager {
+    switchView(view: ViewType): void;
+    getCurrentView(): ViewType;
+    updateView(session: GameSession): void;
+}
+
+class NavigationController implements ViewManager {
+    private currentView: ViewType = ViewType.HOME;
+    private appContainer: HTMLElement;
+    private navButtons: Map<ViewType, HTMLButtonElement>;
+    private currentSession: GameSession | null = null;
+
+    constructor() {
+        this.appContainer = GUI.query<HTMLElement>('#app') || this.createAppContainer();
+        this.navButtons = new Map();
+        this.initializeNavigation();
+    }
+
+    private createAppContainer(): HTMLElement {
+        const container = GUI.div({ id: 'app' });
+        document.body.appendChild(container);
+        return container;
+    }
+
+    private initializeNavigation(): void {
+        const aside = GUI.query<HTMLElement>('aside.row');
+        if (!aside) {
+            console.error('Navigation bar not found in DOM');
+            return;
+        }
+
+        const buttons = GUI.queryAll<HTMLButtonElement>('.btn-icon', aside);
+        
+        // Map buttons to views based on their icon
+        const iconToView: Record<string, ViewType> = {
+            'home': ViewType.HOME,
+            'globe_location_pin': ViewType.LOCATIONS,
+            'rocket_launch': ViewType.ROCKETS,
+            'planet': ViewType.COLONIES,
+            'add_business': ViewType.BUILDINGS
+        };
+
+        buttons.forEach(button => {
+            const icon = GUI.query<HTMLElement>('.material-symbols-rounded', button);
+            if (icon) {
+                const iconName = icon.textContent?.trim() || '';
+                const viewType = iconToView[iconName];
+                
+                if (viewType) {
+                    this.navButtons.set(viewType, button);
+                    button.onclick = () => this.switchView(viewType);
+                }
+            }
+        });
+
+        // Set initial active state
+        this.setActiveButton(this.currentView);
+    }
+
+    private setActiveButton(view: ViewType): void {
+        this.navButtons.forEach((button, buttonView) => {
+            if (buttonView === view) {
+                GUI.addClass(button, 'active');
+            } else {
+                GUI.removeClass(button, 'active');
+            }
+        });
+    }
+
+    switchView(view: ViewType): void {
+        if (this.currentView === view) return;
+
+        this.currentView = view;
+        this.setActiveButton(view);
+        
+        // Close all modals when switching views
+        modalManager.closeAll();
+        
+        // Render the new view with current session
+        if (this.currentSession) {
+            this.renderCurrentView(this.currentSession);
+        }
+    }
+
+    getCurrentView(): ViewType {
+        return this.currentView;
+    }
+
+    updateView(session: GameSession): void {
+        this.currentSession = session;
+        this.renderCurrentView(session);
+    }
+
+    /**
+     * Incremental update - only updates values without full re-render
+     */
+    updateViewIncremental(session: GameSession): void {
+        this.currentSession = session;
+        // For now, most views don't need constant updates
+        // Only the home view might need incremental updates for stats
+        if (this.currentView === ViewType.HOME) {
+            this.updateHomeViewValues(session);
+        } else if (this.currentView === ViewType.BUILDINGS) {
+            this.updateMarketValues(session);
+        }
+    }
+
+    /**
+     * Update market inventory values without re-rendering
+     */
+    private updateMarketValues(session: GameSession): void {
+        const earthHQ = session.company.colonies.find(c =>
+            c.locationId.name === 'Earth HQ' || c.name === 'Earth HQ'
+        );
+
+        if (!earthHQ) return;
+
+        // Update inventory text
+        const inventoryElements = GUI.queryAll<HTMLElement>('.market-inventory', this.appContainer);
+        inventoryElements.forEach(el => {
+            const goodId = Number(el.dataset.goodId);
+            if (!isNaN(goodId)) {
+                const item = earthHQ.getItemPositions().find(ip => ip.good.getId() === goodId);
+                const quantity = item ? item.quantity : 0;
+                el.textContent = `You have: ${GUI.formatNumber(quantity)}`;
+            }
+        });
+
+        // Update sell buttons state and "All" button price
+        const sellButtons = GUI.queryAll<HTMLButtonElement>('.btn-sell', this.appContainer);
+        sellButtons.forEach(btn => {
+            const goodId = Number(btn.dataset.goodId);
+            const sellQty = btn.dataset.sellQty;
+            const sellPrice = Number(btn.dataset.sellPrice);
+
+            if (!isNaN(goodId) && !isNaN(sellPrice)) {
+                const item = earthHQ.getItemPositions().find(ip => ip.good.getId() === goodId);
+                const quantity = item ? item.quantity : 0;
+
+                if (sellQty === 'all') {
+                    // Update the "All" button price display with current inventory
+                    const totalPrice = sellPrice * Math.floor(quantity);
+                    const priceDiv = GUI.query<HTMLElement>('.market-btn-price', btn);
+                    if (priceDiv) {
+                        priceDiv.textContent = quantity > 0 ? GUI.formatMoney(totalPrice) : '??';
+                    }
+                } else {
+                    const numQty = Number(sellQty);
+                    if (!isNaN(numQty)) {
+                        btn.disabled = quantity < numQty;
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Update only the values in home view without re-rendering
+     */
+    private updateHomeViewValues(session: GameSession): void {
+        // Update stat values if they exist
+        const statValues = GUI.queryAll<HTMLElement>('.stat-value', this.appContainer);
+        if (statValues.length >= 4) {
+            // @ts-ignore - We know these exist based on the order they were created
+            statValues[0].textContent = session.rockets.length.toString();
+            // @ts-ignore
+            statValues[1].textContent = session.company.colonies.length.toString();
+            // @ts-ignore
+            statValues[2].textContent = GUI.formatMoney(session.company.getMoney());
+        }
+    }
+
+    private renderCurrentView(session?: GameSession): void {
+        if (!session) {
+            GUI.clearChildren(this.appContainer);
+            return;
+        }
+
+        switch (this.currentView) {
+            case ViewType.HOME:
+                this.renderHomeView(session);
+                break;
+            case ViewType.LOCATIONS:
+                this.renderLocationsView(session);
+                break;
+            case ViewType.ROCKETS:
+                this.renderRocketsView(session);
+                break;
+            case ViewType.COLONIES:
+                this.renderColoniesView(session);
+                break;
+            case ViewType.BUILDINGS:
+                this.renderBuildingsView(session);
+                break;
+        }
+    }
+
+    private renderHomeView(session: GameSession): void {
+        GUI.clearChildren(this.appContainer);
+
+        const homeContent = GUI.div({ classes: ['home-view'] });
+
+        // Company overview
+        const companyCard = this.createCompanyOverviewCard(session.company);
+        homeContent.appendChild(companyCard);
+
+        // Quick stats
+        const statsGrid = this.createQuickStatsGrid(session);
+        homeContent.appendChild(statsGrid);
+
+        // Recent activity (placeholder)
+        const activitySection = GUI.div({
+            classes: ['activity-section'],
+            children: [
+                GUI.heading(3, { textContent: 'Recent Activity' }),
+                GUI.p({ textContent: 'No recent activity to display.' })
+            ]
+        });
+        homeContent.appendChild(activitySection);
+
+        this.appContainer.appendChild(homeContent);
+    }
+
+    private createCompanyOverviewCard(company: Company): HTMLElement {
+        return GUI.div({
+            classes: ['card', 'company-card'],
+            children: [
+                GUI.heading(2, { textContent: company.name }),
+                GUI.p({ textContent: `Level ${company.getLevel()}` }),
+                GUI.div({
+                    classes: ['company-stats'],
+                    children: [
+                        GUI.div({
+                            children: [
+                                GUI.span({ textContent: 'Colonies: ', classes: ['stat-label'] }),
+                                GUI.span({ textContent: company.colonies.length.toString(), classes: ['stat-value'] })
+                            ]
+                        })
+                    ]
+                })
+            ]
+        });
+    }
+
+    private createQuickStatsGrid(session: GameSession): HTMLElement {
+        const company = session.company;
+        
+        return GUI.div({
+            classes: ['stats-grid'],
+            children: [
+                this.createStatCard('Rockets', session.rockets.length, 'rocket_launch'),
+                this.createStatCard('Colonies', company.colonies.length, 'planet'),
+                this.createStatCard('Money', GUI.formatMoney(company.getMoney()), 'sell')
+            ]
+        });
+    }
+
+    private createStatCard(label: string, value: string | number, icon: string): HTMLElement {
+        return GUI.div({
+            classes: ['stat-card'],
+            children: [
+                GUI.materialIcon(icon, { classes: ['stat-icon'] }),
+                GUI.div({
+                    classes: ['stat-content'],
+                    children: [
+                        GUI.span({ textContent: label, classes: ['stat-label'] }),
+                        GUI.span({ textContent: value.toString(), classes: ['stat-value'] })
+                    ]
+                })
+            ]
+        });
+    }
+
+    private renderLocationsView(session: GameSession): void {
+        GUI.clearChildren(this.appContainer);
+
+        const locationsView = GUI.div({ classes: ['locations-view'] });
+        locationsView.appendChild(GUI.heading(2, { textContent: 'Locations' }));
+
+        // Collect all unique locations
+        const locations = new Set<string>();
+        session.company.colonies.forEach(col => locations.add(col.locationId.name));
+
+        if (locations.size === 0) {
+            locationsView.appendChild(GUI.p({ textContent: 'No locations discovered yet.' }));
+        } else {
+            const locationsList = GUI.div({ classes: ['locations-list'] });
+            locations.forEach(locationName => {
+                const locationCard = GUI.div({
+                    classes: ['location-card'],
+                    children: [
+                        GUI.materialIcon('globe_location_pin', { classes: ['location-icon'] }),
+                        GUI.heading(3, { textContent: locationName })
+                    ]
+                });
+                locationsList.appendChild(locationCard);
+            });
+            locationsView.appendChild(locationsList);
+        }
+
+        this.appContainer.appendChild(locationsView);
+    }
+
+    private renderRocketsView(session: GameSession): void {
+        GUI.clearChildren(this.appContainer);
+
+        const rocketsView = GUI.div({ classes: ['rockets-view'] });
+        rocketsView.appendChild(GUI.heading(2, { textContent: 'Rockets' }));
+
+        if (session.rockets.length === 0) {
+            rocketsView.appendChild(GUI.p({ textContent: 'No rockets available. Build one to start exploring!' }));
+        } else {
+            const rocketsList = GUI.div({ classes: ['rockets-list'] });
+            
+            session.rockets.forEach(rocket => {
+                const rocketCard = this.createRocketCard(rocket, session);
+                rocketsList.appendChild(rocketCard);
+            });
+
+            rocketsView.appendChild(rocketsList);
+        }
+
+        this.appContainer.appendChild(rocketsView);
+    }
+
+    private createRocketCard(rocket: Rocket, session: GameSession): HTMLElement {
+        const destination = rocket.getDestination();
+        const status = destination 
+            ? `En route to ${destination.name}` 
+            : `Docked at ${rocket.getLocation().name}`;
+        
+        const totalQuantity = rocket.getTotalQuantity();
+        const capacity = rocket.getCapacity();
+
+        // Check if docked at a colony or warehouse
+        const isDocked = !destination;
+        const dockedLocation = isDocked ? 
+            session.company.colonies.find(c => c.locationId.getId() === rocket.getLocation().getId()) : null;
+
+        const buttonContainer = GUI.div({ classes: ['rocket-actions'] });
+        
+        buttonContainer.appendChild(GUI.button({
+            classes: ['btn', 'btn-small'],
+            textContent: 'View',
+            onClick: () => modalManager.open(ModalType.ROCKET, rocket)
+        }));
+
+        // Add Load Cargo button if docked at a location with storage
+        if (dockedLocation) {
+            buttonContainer.appendChild(GUI.button({
+                classes: ['btn', 'btn-small', 'btn-accent'],
+                textContent: 'Load Cargo',
+                onClick: () => {
+                    modalManager.open(ModalType.CARGO_LOAD, {
+                        rocket,
+                        source: dockedLocation,
+                        onTransfer: () => {
+                            // Update the view after transfer
+                            this.updateView(session);
+                        }
+                    });
+                }
+            }));
+        }
+
+        const card = GUI.div({
+            classes: ['rocket-card', 'card'],
+            children: [
+                GUI.materialIcon('rocket_launch', { classes: ['rocket-icon'] }),
+                GUI.div({
+                    classes: ['rocket-info'],
+                    children: [
+                        GUI.heading(3, { textContent: rocket.name }),
+                        GUI.p({ textContent: status, classes: ['rocket-status'] }),
+                        GUI.p({
+                            textContent: `Storage: ${GUI.formatNumber(totalQuantity)}/${GUI.formatNumber(rocket.getCapacity())}`,
+                            classes: ['rocket-storage']
+                        }),
+                        GUI.p({ textContent: `Level ${rocket.getLevel()}`, classes: ['rocket-level'] })
+                    ]
+                }),
+                buttonContainer
+            ]
+        });
+
+        // Add storage details section
+        const storageSection = this.createStorageSection(rocket);
+        card.appendChild(storageSection);
+
+        return card;
+    }
+
+    private renderColoniesView(session: GameSession): void {
+        GUI.clearChildren(this.appContainer);
+
+        const coloniesView = GUI.div({ classes: ['colonies-view'] });
+        coloniesView.appendChild(GUI.heading(2, { textContent: 'Colonies' }));
+
+        if (session.company.colonies.length === 0) {
+            coloniesView.appendChild(GUI.p({ textContent: 'No colonies established yet.' }));
+        } else {
+            const coloniesList = GUI.div({ classes: ['colonies-list'] });
+            
+            session.company.colonies.forEach(colony => {
+                const colonyCard = this.createColonyCard(colony, session);
+                coloniesList.appendChild(colonyCard);
+            });
+
+            coloniesView.appendChild(coloniesList);
+        }
+
+        this.appContainer.appendChild(coloniesView);
+    }
+
+    private createColonyCard(colony: Colony, session: GameSession): HTMLElement {
+        const itemCount = colony.getItemPositions().length;
+        const capacity = colony.getCapacity();
+        const totalQuantity = colony.getTotalQuantity();
+
+        const card = GUI.div({
+            classes: ['colony-card', 'card'],
+            children: [
+                GUI.materialIcon('planet', { classes: ['colony-icon'] }),
+                GUI.div({
+                    classes: ['colony-info'],
+                    children: [
+                        GUI.heading(3, { textContent: colony.name }),
+                        GUI.p({ textContent: colony.locationId.name, classes: ['colony-location'] }),
+                        GUI.p({
+                            textContent: `Storage: ${GUI.formatNumber(totalQuantity)}/${GUI.formatNumber(capacity)}`,
+                            classes: ['colony-storage']
+                        }),
+                        GUI.p({ textContent: `Level ${colony.getLevel()}`, classes: ['colony-level'] })
+                    ]
+                }),
+                GUI.button({
+                    classes: ['btn', 'btn-small'],
+                    textContent: 'Manage',
+                    onClick: () => modalManager.open(ModalType.COLONY, colony)
+                })
+            ]
+        });
+
+        console.log(`Colony ${colony.name} has ${itemCount} item types, total quantity ${totalQuantity}, capacity ${capacity}`);
+        // Add storage details section
+        const storageSection = this.createStorageSection(colony);
+        card.appendChild(storageSection);
+
+        return card;
+    }
+
+    private renderBuildingsView(session: GameSession): void {
+        GUI.clearChildren(this.appContainer);
+
+        const buildingsView = GUI.div({ classes: ['buildings-view', 'market-view'] });
+        buildingsView.appendChild(GUI.heading(2, { textContent: 'World Market (Earth)' }));
+        buildingsView.appendChild(GUI.p({ 
+            textContent: 'Buy and sell goods at Earth market prices', 
+            classes: ['market-description'] 
+        }));
+
+        // Market goods grid
+        const marketGrid = GUI.div({ classes: ['market-grid'] });
+        
+        // Define market prices for goods
+        const marketPrices = new Map<number, { buy: number, sell: number }>();
+        marketPrices.set(1, { buy: 50, sell: 30 });  // Food
+        marketPrices.set(2, { buy: 40, sell: 25 });  // Water
+        marketPrices.set(3, { buy: 100, sell: 70 }); // Fuel
+        marketPrices.set(4, { buy: 500, sell: 350 }); // Computer
+        marketPrices.set(5, { buy: 300, sell: 200 }); // Circuit Board
+        marketPrices.set(7, { buy: 80, sell: 50 });   // O2
+
+        GoodsRegistry.forEach((good, goodId) => {
+            const prices = marketPrices.get(goodId) || { buy: 100, sell: 50 };
+            const marketCard = this.createMarketGoodCard(good, prices, session);
+            marketGrid.appendChild(marketCard);
+        });
+
+        buildingsView.appendChild(marketGrid);
+        this.appContainer.appendChild(buildingsView);
+    }
+
+    private createMarketGoodCard(good: Good, prices: { buy: number, sell: number }, session: GameSession): HTMLElement {
+        // Find the Earth HQ colony
+        const earthHQ = session.company.colonies.find(c =>
+            c.locationId.name === 'Earth HQ' || c.name === 'Earth HQ'
+        );
+
+        // Get quantity player has in Earth HQ storage
+        let playerQuantity = 0;
+        if (earthHQ) {
+            const item = earthHQ.getItemPositions().find(ip => ip.good.getId() === good.getId());
+            if (item) playerQuantity = item.quantity;
+        }
+
+        const card = GUI.div({
+            classes: ['market-card', 'card'],
+            children: [
+                GUI.heading(3, { textContent: good.name, classes: ['market-good-name'] }),
+                GUI.p({ textContent: good.category, classes: ['market-good-category'] }),
+                GUI.div({
+                    classes: ['market-prices'],
+                    children: [
+                        GUI.div({
+                            classes: ['market-price'],
+                            children: [
+                                GUI.span({ textContent: 'Buy: ', classes: ['price-label'] }),
+                                GUI.span({ textContent: GUI.formatMoney(prices.buy), classes: ['price-value'] })
+                            ]
+                        }),
+                        GUI.div({
+                            classes: ['market-price'],
+                            children: [
+                                GUI.span({ textContent: 'Sell: ', classes: ['price-label'] }),
+                                GUI.span({ textContent: GUI.formatMoney(prices.sell), classes: ['price-value'] })
+                            ]
+                        })
+                    ]
+                }),
+                GUI.p({
+                    textContent: `You have: ${GUI.formatNumber(playerQuantity)}`,
+                    classes: ['market-inventory'],
+                    dataset: { goodId: String(good.getId()) }
+                }),
+                GUI.div({
+                    classes: ['market-actions'],
+                    children: [
+                        this.createMarketButton('1x', GUI.formatMoney(prices.buy * 1), 'btn-buy', () => this.handleMarketBuy(good, prices.buy, 1, session), good),
+                        this.createMarketButton('10x', GUI.formatMoney(prices.buy * 10), 'btn-buy', () => this.handleMarketBuy(good, prices.buy, 10, session), good),
+                        this.createSellButton(good, prices.sell, 1, '1x', session),
+                        this.createSellButton(good, prices.sell, 10, '10x', session),
+                        this.createSellButton(good, prices.sell, -1, 'All', session)
+                    ]
+                })
+            ]
+        });
+
+        return card;
+    }
+
+    private createMarketButton(label: string, price: string, btnClass: string, onClick: () => void, good: Good): HTMLButtonElement {
+        const button = GUI.button({
+            classes: ['btn', btnClass, 'market-btn'],
+            dataset: { goodId: String(good.getId()) },
+            children: [
+                GUI.div({
+                    classes: ['market-btn-label'],
+                    textContent: label
+                }),
+                GUI.div({
+                    classes: ['market-btn-price'],
+                    textContent: price
+                })
+            ],
+            onClick: onClick
+        });
+
+        return button;
+    }
+
+    private createSellButton(good: Good, price: number, quantity: number, label: string, session: GameSession): HTMLButtonElement {
+        const isAllButton = quantity === -1;
+        let totalPrice = price * quantity;
+
+        const button = GUI.button({
+            classes: ['btn', 'btn-sell', 'market-btn'],
+            dataset: {
+                goodId: String(good.getId()),
+                sellQty: isAllButton ? 'all' : String(quantity),
+                sellPrice: String(price)
+            },
+            children: [
+                GUI.div({
+                    classes: ['market-btn-label'],
+                    textContent: label
+                }),
+                GUI.div({
+                    classes: ['market-btn-price'],
+                    textContent: isAllButton ? '??' : GUI.formatMoney(totalPrice)
+                })
+            ],
+            onClick: () => {
+                if (isAllButton) {
+                    // For "All" button, calculate current quantity dynamically
+                    const earthHQ = session.company.colonies.find(c =>
+                        c.locationId.name === 'Earth HQ' || c.name === 'Earth HQ'
+                    );
+                    if (earthHQ) {
+                        const item = earthHQ.getItemPositions().find(ip => ip.good.getId() === good.getId());
+                        const currentQty = item ? Math.floor(item.quantity) : 0;
+                        if (currentQty > 0) {
+                            this.handleMarketSell(good, price, currentQty, session);
+                        }
+                    }
+                } else {
+                    this.handleMarketSell(good, price, quantity, session);
+                }
+            }
+        });
+
+        // Check if button should be disabled
+        if (!isAllButton) {
+            const earthHQ = session.company.colonies.find(c =>
+                c.locationId.name === 'Earth HQ' || c.name === 'Earth HQ'
+            );
+            if (earthHQ) {
+                const item = earthHQ.getItemPositions().find(ip => ip.good.getId() === good.getId());
+                const playerQuantity = item ? item.quantity : 0;
+                if (playerQuantity < quantity) {
+                    button.disabled = true;
+                }
+            }
+        }
+
+        return button;
+    }
+
+    private handleMarketBuy(good: Good, price: number, quantity: number, session: GameSession): void {
+        const totalCost = price * quantity;
+        
+        if (!session.company.deductMoney(totalCost)) {
+            alert('Not enough money!');
+            return;
+        }
+
+        // Find the Earth HQ colony
+        const earthHQ = session.company.colonies.find(c => 
+            c.locationId.name === 'Earth HQ' || c.name === 'Earth HQ'
+        );
+
+        if (!earthHQ) {
+            session.company.addMoney(totalCost); // Refund
+            alert('Earth HQ not found!');
+            return;
+        }
+
+        // Check if there's enough storage space
+        if (!earthHQ.addItemPosition(new ItemPosition(good, quantity))) {
+            session.company.addMoney(totalCost); // Refund
+            alert('Not enough storage space at Earth HQ!');
+            return;
+        }
+
+        hudController.updateMoneyDisplay(session.company.getMoney());
+        // Update market values
+        this.updateMarketValues(session);
+    }
+
+    private handleMarketSell(good: Good, price: number, quantity: number, session: GameSession): void {
+        // Find the Earth HQ colony
+        const earthHQ = session.company.colonies.find(c => 
+            c.locationId.name === 'Earth HQ' || c.name === 'Earth HQ'
+        );
+
+        if (!earthHQ) {
+            alert('Earth HQ not found!');
+            return;
+        }
+
+        // Check if we have enough goods to sell
+        const item = earthHQ.getItemPositions().find(ip => ip.good.getId() === good.getId());
+        if (!item || item.quantity < quantity) {
+            alert('Not enough goods to sell!');
+            return;
+        }
+
+        // Remove goods from Earth HQ
+        if (!earthHQ.reduceItemQuantity(good.getId(), quantity)) {
+            alert('Error selling goods!');
+            return;
+        }
+
+        // Remove item if quantity is 0
+        if (item.quantity === 0) {
+            earthHQ.removeItemPosition(good.getId());
+        }
+
+        const totalEarned = price * quantity;
+        session.company.addMoney(totalEarned);
+        hudController.updateMoneyDisplay(session.company.getMoney());
+        // Update market values
+        this.updateMarketValues(session);
+    }
+
+    private createWarehouseCard(warehouse: any): HTMLElement {
+        const totalQuantity = warehouse.getTotalQuantity();
+        const capacity = warehouse.getCapacity();
+
+        return GUI.div({
+            classes: ['warehouse-card', 'card'],
+            children: [
+                GUI.materialIcon('add_business', { classes: ['warehouse-icon'] }),
+                GUI.div({
+                    classes: ['warehouse-info'],
+                    children: [
+                        GUI.heading(3, { textContent: warehouse.name }),
+                        GUI.p({ textContent: warehouse.locationId.name, classes: ['warehouse-location'] }),
+                        GUI.p({
+                            textContent: `Storage: ${GUI.formatNumber(totalQuantity)}/${GUI.formatNumber(capacity)}`,
+                            classes: ['warehouse-storage']
+                        }),
+                        GUI.p({ textContent: `Level ${warehouse.getLevel()}`, classes: ['warehouse-level'] })
+                    ]
+                })
+            ]
+        });
+    }
+
+    /**
+     * Create a storage inventory section showing all items in storage
+     */
+    private createStorageSection(storageHolder: Rocket | Colony | any): HTMLElement {
+        const items = storageHolder.getItemPositions();
+        
+        const storageSection = GUI.div({ classes: ['storage-section'] });
+        
+        if (items.length === 0) {
+            storageSection.appendChild(GUI.p({ 
+                textContent: 'No items in storage', 
+                classes: ['storage-empty'] 
+            }));
+        } else {
+            const itemsList = GUI.div({ classes: ['storage-items-list'] });
+            
+            items.forEach((itemPosition: any) => {
+                const itemCard = GUI.div({
+                    classes: ['storage-item'],
+                    children: [
+                        GUI.span({ 
+                            textContent: itemPosition.good.name, 
+                            classes: ['storage-item-name'] 
+                        }),
+                        GUI.span({
+                            textContent: `×${GUI.formatNumber(itemPosition.quantity)}`,
+                            classes: ['storage-item-quantity']
+                        })
+                    ]
+                });
+                itemsList.appendChild(itemCard);
+            });
+            
+            storageSection.appendChild(itemsList);
+        }
+        
+        return storageSection;
+    }
+}
+
+// Singleton instance
+export const navigationController = new NavigationController();

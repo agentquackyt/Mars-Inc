@@ -1,0 +1,228 @@
+/* Level menu card */
+.lvl-view-card {
+    background: var(--mars-soil);
+    border: 3px solid var(--mars-rust);
+    border-radius: 5px;
+    aspect-ratio: 1/1;
+    width: 80px;
+    height: 80px;
+    margin-left: .5rem;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.lvl-view-card .lvl-label {
+    color: var(--text-primary);
+    font-size: 15px;
+    text-align: center;
+    margin-top: 0.5rem;
+}
+
+.lvl-view-card .lvl-number {
+    font-size: 30px;
+    font-weight: 600;
+}
+
+/* Level table */
+.lvl-table {
+    border: 2px solid var(--ui-bg-dark);
+    border-radius: 8px;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.lvl-table td {
+    border-right: 2px solid var(--ui-bg-dark);
+    padding: 6px .75rem;
+}
+
+.lvl-table td:first-child {
+    white-space: nowrap;
+    width: 1px;
+}
+
+.lvl-upgrade-modifier {
+    margin-left: .5rem;
+    font-size: 14px;
+    background: var(--action-upgrade);
+    color: var(--action-upgrade-text);
+    font-weight: 600;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+/* Module grid */
+.module-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+.module-grid>.module-card {
+    border: 3px solid var(--ui-bg-dark);
+    border-radius: 10px;
+    aspect-ratio: 1/1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-around;
+    text-align: center;
+    padding: .3rem;
+    font-size: 14px;
+    width: 120px;
+}
+
+.module-icon {
+    font-variation-settings:
+        'FILL' 1,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 40;
+    font-size: 35px;
+    color: var(--text-primary);
+}
+
+.module-card.filled {
+    background: var(--mars-soil);
+    border: 3px solid var(--mars-rust);
+    box-shadow: var(--shadow-card);
+}
+
+.module-card.clickable {
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.module-card.clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.module-level {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+/* Production display */
+.production-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.production-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background: var(--ui-bg-dark);
+    border: 2px solid var(--ui-border);
+    border-radius: 6px;
+}
+
+.production-good-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.production-amount {
+    color: var(--action-upgrade);
+    font-weight: 600;
+}
+
+/* Build Module Modal */
+.goods-selection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.good-selection-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: var(--mars-soil);
+    border: 2px solid var(--ui-border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.good-selection-card:hover {
+    border-color: var(--action-upgrade);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
+}
+
+.good-selection-card .good-icon {
+    font-variation-settings:
+        'FILL' 1,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 40;
+    font-size: 40px;
+    color: var(--text-primary)
+}
+
+.good-selection-card .good-name {
+    font-weight: 600;
+    text-align: center;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.good-selection-card .good-production {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.good-selection-card.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: var(--ui-border);
+}
+
+.good-selection-card.disabled:hover {
+    border-color: var(--ui-border);
+    box-shadow: none;
+    transform: none;
+}
+
+.good-selection-card.disabled .good-production {
+    color: var(--text-secondary);
+}
+
+/* Empty Module Card */
+.module-card.empty {
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.module-card.empty:hover {
+    border-color: var(--action-upgrade);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Disabled upgrade button at max level */
+.btn-upgrade.btn-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-upgrade.btn-disabled:hover {
+    background: inherit;
+    transform: none;
+}

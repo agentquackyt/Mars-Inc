@@ -1,0 +1,191 @@
+/* Modal Overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(2px);
+    z-index: var(--overlay-z-index, 999);
+}
+
+.modal-overlay.hidden {
+    display: none;
+}
+
+.modal {
+    position: fixed;
+    top: 50%;
+    left: 1rem;
+    right: 1rem;
+    transform: translateY(-50%);
+    background: var(--ui-bg-dark-bg);
+    border: 4px solid var(--ui-bg-dark);
+    border-bottom-width: 7px;
+    border-radius: 10px;
+    box-shadow: var(--shadow-card);
+    padding: .5rem .9rem;
+    z-index: 1000;
+    max-height: 90dvh;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal.notification-view {
+    z-index: 1010;
+}
+
+.modal.rocket-view {
+    z-index: 1005;
+}
+
+.modal.module-view {
+    z-index: 1005;
+}
+
+.modal.build-module-view {
+    z-index: 1005;
+}
+
+.modal.colony-view {
+    z-index: 1000;
+}
+
+.modal.cargo-load-view {
+    z-index: 1005;
+}
+
+.view-hotbar .btn:hover {
+    color: var(--ui-bg-light);
+}
+
+.view-hotbar {
+    display: flex;
+    gap: 1rem;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.view-hotbar-title {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.view-hotbar>.btn-icon {
+    width: 35px;
+}
+
+.view-content {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.modal-actions {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    flex-shrink: 0;
+}
+
+/* Cargo Loading Modal */
+.cargo-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--ui-bg-dark);
+    margin-bottom: 0.75rem;
+}
+
+.cargo-header p {
+    margin: 0;
+}
+
+.cargo-goods-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.cargo-good-card {
+    background: var(--ui-bg-dark);
+    border-radius: 8px;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.cargo-good-card.cargo-unload {
+    background: var(--ui-bg-dark-bg);
+    border-left: 3px solid var(--mars-rust);
+}
+
+.cargo-good-card.cargo-merged {
+    background: var(--ui-bg-dark);
+}
+
+.cargo-quantities {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.25rem;
+}
+
+.cargo-quantities p {
+    margin: 0;
+}
+
+.cargo-controls-merged {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.cargo-control-section {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.cargo-good-info h4 {
+    margin: 0 0 0.25rem 0;
+    font-size: 16px;
+}
+
+.cargo-good-info .text-secondary {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.cargo-controls {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.text-muted {
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.rocket-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+/* Section Title with Spacing */
+.section-title-spaced {
+    margin-top: 20px;
+}
