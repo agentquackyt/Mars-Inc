@@ -6,10 +6,14 @@
 import * as GUI from './gui';
 import type { Company, Colony, ProductionModule, InfrastructureModule, Module } from './models/company';
 import { ProductionModule as ProductionModuleClass, InfrastructureModule as InfrastructureModuleClass, InfrastructureType, INFRASTRUCTURE_CONFIGS } from './models/company';
-import type { Rocket } from './models/storage';
+import { SpaceConnections, type Rocket } from './models/storage';
 import type { LevelSystem } from './models/level';
 import type { StorageHolder } from './models/storage';
 import { ItemPosition } from './models/good';
+import { LocationType } from './models/location';
+import type { GameSession } from './models/sessionModel';
+import { config } from './models/sessionModel';
+import { GoodsRegistry } from './models/goodsRegistry';
 
 export enum ModalType {
     NOTIFICATION = 'notification-view',
@@ -18,7 +22,11 @@ export enum ModalType {
     COLONY = 'colony-view',
     CARGO_LOAD = 'cargo-load-view',
     MODULE = 'module-view',
-    BUILD_MODULE = 'build-module-view'
+    BUILD_MODULE = 'build-module-view',
+    ROCKET_FLEET = 'rocket-fleet-view',
+    TUTORIAL = 'tutorial-view',
+    EXPLORATION = 'exploration-view',
+    TRAVEL = 'travel-view'
 }
 
 export interface ModalController {
@@ -32,6 +40,10 @@ export interface ModalController {
 class ModalManager implements ModalController {
     private modals: Map<ModalType, HTMLElement>;
     private onUpgradeCallbacks: Map<ModalType, ((entity: any) => void)[]>;
+    private onBuildModuleCallback: ((colony: Colony, module: Module, cost: number) => boolean) | null = null;
+    private onBuildRocketCallback: ((colony: Colony) => boolean) | null = null;
+    private onStartExplorationCallback: ((rocket: Rocket, targetType: LocationType) => boolean) | null = null;
+    private onStartTravelCallback: ((rocket: Rocket, targetType: LocationType) => boolean) | null = null;
     private overlay: HTMLElement | null;
     private goodsRegistry: Map<number, any> | null = null;
     private modalData: Map<ModalType, any> = new Map();
@@ -66,21 +78,21 @@ class ModalManager implements ModalController {
         console.log('[ModalManager] Initializing modals');
         // Find the modal overlay
         this.overlay = GUI.query<HTMLElement>('.modal-overlay');
-        
+
         // Setup overlay click to close modals
         if (this.overlay) {
-            this.overlay.onclick = () => this.closeAll();
+            this.overlay.onclick = () => this.closeTopModal();
         }
-        
+
         // Find all modal elements in the DOM
         const notificationModal = GUI.query<HTMLElement>(`.${ModalType.NOTIFICATION}`);
         const settingsModal = GUI.query<HTMLElement>(`.${ModalType.SETTINGS}`);
-        
+
         if (notificationModal) {
             this.modals.set(ModalType.NOTIFICATION, notificationModal);
             this.setupCloseButton(notificationModal, ModalType.NOTIFICATION);
         }
-        
+
         if (settingsModal) {
             this.modals.set(ModalType.SETTINGS, settingsModal);
             this.setupCloseButton(settingsModal, ModalType.SETTINGS);
@@ -174,6 +186,28 @@ class ModalManager implements ModalController {
         }
     }
 
+    private closeTopModal(): void {
+        // Find the topmost (highest z-index) visible modal and close only that one
+        let topModalType: ModalType | null = null;
+        let highestZIndex = -1;
+
+        this.modals.forEach((modal, type) => {
+            if (GUI.isVisible(modal)) {
+                const computedStyle = window.getComputedStyle(modal);
+                const zIndex = parseInt(computedStyle.zIndex, 10);
+                if (!isNaN(zIndex) && zIndex > highestZIndex) {
+                    highestZIndex = zIndex;
+                    topModalType = type;
+                }
+            }
+        });
+
+        // Close only the topmost modal
+        if (topModalType) {
+            this.close(topModalType);
+        }
+    }
+
     private updateOverlayVisibility(): void {
         // Check if any modal is still open
         let anyModalOpen = false;
@@ -220,6 +254,35 @@ class ModalManager implements ModalController {
         this.settingsActionCallback = callback;
     }
 
+    onBuildModule(callback: (colony: Colony, module: Module, cost: number) => boolean): void {
+        this.onBuildModuleCallback = callback;
+    }
+
+    onBuildRocket(callback: (colony: Colony) => boolean): void {
+        this.onBuildRocketCallback = callback;
+    }
+
+    onStartExploration(callback: (rocket: Rocket, targetType: LocationType) => boolean): void {
+        this.onStartExplorationCallback = callback;
+    }
+
+    onStartTravel(callback: (rocket: Rocket, targetType: LocationType) => boolean): void {
+        this.onStartTravelCallback = callback;
+    }
+
+    /**
+     * Update open modals incrementally if they display time-sensitive data
+     */
+    updateOpenModalsIncremental(session: any): void {
+        // Check if rocket modal is open and update it
+        if (this.isOpen(ModalType.ROCKET)) {
+            const data = this.modalData.get(ModalType.ROCKET);
+            if (data) {
+                this.update(ModalType.ROCKET, data);
+            }
+        }
+    }
+
     update(type: ModalType, data: any): void {
         const modal = this.modals.get(type);
         if (!modal) return;
@@ -237,6 +300,9 @@ class ModalManager implements ModalController {
             case ModalType.CARGO_LOAD:
                 this.updateCargoLoadModal(modal, data);
                 break;
+            case ModalType.ROCKET_FLEET:
+                this.updateRocketFleetModal(modal, data);
+                break;
             case ModalType.MODULE:
                 this.updateModuleModal(modal, data);
                 break;
@@ -246,11 +312,23 @@ class ModalManager implements ModalController {
             case ModalType.SETTINGS:
                 this.updateSettingsModal(modal, data);
                 break;
+            case ModalType.TUTORIAL:
+                this.updateTutorialModal(modal, data);
+                break;
+            case ModalType.EXPLORATION:
+                this.updateExplorationModal(modal, data);
+                break;
+            case ModalType.TRAVEL:
+                this.updateTravelModal(modal, data);
+                break;
         }
     }
 
     private createDynamicModal(type: ModalType, data: any): HTMLElement | null {
         switch (type) {
+            case ModalType.ROCKET_FLEET:
+                return this.createRocketFleetModal(data);
+
             case ModalType.ROCKET:
                 return this.createRocketModal(data);
             case ModalType.COLONY:
@@ -261,9 +339,396 @@ class ModalManager implements ModalController {
                 return this.createModuleModal(data);
             case ModalType.BUILD_MODULE:
                 return this.createBuildModuleModal(data);
+            case ModalType.TUTORIAL:
+                return this.createTutorialModal(data);
+            case ModalType.EXPLORATION:
+                return this.createExplorationModal(data);
+            case ModalType.TRAVEL:
+                return this.createTravelModal(data);
             default:
                 return null;
         }
+    }
+
+    private createExplorationModal(data: { rocket: Rocket; session: GameSession; selectedTargetType?: LocationType }): HTMLElement {
+        const modal = GUI.section({
+            classes: ['exploration-view', 'modal']
+        });
+
+        const hotbar = GUI.createViewHotbar('Exploration', () => this.close(ModalType.EXPLORATION));
+        const content = GUI.createViewContent([], true);
+        const actions = GUI.div({ classes: ['modal-actions'] });
+
+        modal.appendChild(hotbar);
+        modal.appendChild(content);
+        modal.appendChild(actions);
+
+        this.setupCloseButton(modal, ModalType.EXPLORATION);
+        this.updateExplorationModal(modal, data);
+
+        return modal;
+    }
+
+    private updateExplorationModal(modal: HTMLElement, data: { rocket: Rocket; session: GameSession; selectedTargetType?: LocationType }): void {
+        const content = GUI.query<HTMLElement>('.view-content', modal);
+        if (!content) return;
+
+        GUI.clearChildren(content);
+
+        const { rocket, session } = data;
+        const fromType = rocket.getLocation().getType();
+
+        const colonized = new Set(session.company.colonies.map(c => c.locationId.getType()));
+        const possibleTargets = (Object.values(LocationType) as LocationType[])
+            .filter(t => t !== LocationType.TRAVELING)
+            .filter(t => t !== fromType)
+            .filter(t => !colonized.has(t))
+            .filter(t => SpaceConnections.some(conn => conn.from === fromType && conn.to === t));
+
+        content.appendChild(GUI.p({
+            textContent: `Rocket: ${rocket.name} (from ${rocket.getLocation().name})`,
+            classes: ['text-secondary']
+        }));
+
+        if (rocket.getDestination()) {
+            content.appendChild(GUI.p({
+                textContent: 'This rocket is currently traveling.',
+                classes: ['text-muted']
+            }));
+            return;
+        }
+
+        if (possibleTargets.length === 0) {
+            content.appendChild(GUI.p({
+                textContent: 'No valid exploration targets available from this location.',
+                classes: ['text-muted']
+            }));
+            return;
+        }
+
+        const selectedTarget = data.selectedTargetType && possibleTargets.some(t => t === data.selectedTargetType)
+            ? data.selectedTargetType
+            : possibleTargets[0];
+        data.selectedTargetType = selectedTarget;
+
+        const selectWrap = GUI.div({ classes: ['row'], styles: { gap: '8px', alignItems: 'center', marginBottom: '16px' } });
+        selectWrap.appendChild(GUI.span({ textContent: 'Target:', classes: ['text-secondary'] }));
+
+        const select = document.createElement('select');
+        select.classList.add('btn', 'btn-secondary');
+        select.id = 'exploration-target-select';
+        possibleTargets.forEach(t => {
+            const option = document.createElement('option');
+            option.value = t;
+            option.textContent = t;
+            if (t === selectedTarget) option.selected = true;
+            select.appendChild(option);
+        });
+        select.onchange = () => {
+            data.selectedTargetType = select.value as LocationType;
+            this.update(ModalType.EXPLORATION, data);
+        };
+        selectWrap.appendChild(select);
+        content.appendChild(selectWrap);
+
+        const connection = SpaceConnections.find(conn => conn.from === fromType && conn.to === selectedTarget);
+        if (!connection) {
+            content.appendChild(GUI.p({ textContent: 'No route available.', classes: ['text-muted'] }));
+            return;
+        }
+
+        const colonyCount = session.company.colonies.length;
+        const exponent = Math.max(0, colonyCount - 1);
+        const price = Math.floor(100_000 * Math.pow(4, exponent));
+        const fuelUnits = connection.fuelCost * 2;
+        const unlockSol = connection.travelTime * 2;
+
+        const tableWrap = GUI.div({ classes: ['lvl-table-wrap'] });
+        const statsTable = GUI.table({
+            classes: ['lvl-table'],
+            children: [
+                GUI.row([
+                    GUI.span({ textContent: 'Unlock time', classes: ['lvl-property-name'] }),
+                    GUI.span({ textContent: `${unlockSol} sol`, classes: ['lvl-property-value'] })
+                ]),
+                GUI.row([
+                    GUI.span({ textContent: 'Fuel required', classes: ['lvl-property-name'] }),
+                    GUI.span({ textContent: GUI.formatNumber(fuelUnits), classes: ['lvl-property-value'] })
+                ]),
+                GUI.row([
+                    GUI.span({ textContent: 'Exploration price', classes: ['lvl-property-name'] }),
+                    GUI.span({ textContent: GUI.formatMoney(price), classes: ['lvl-property-value'] })
+                ])
+            ]
+        });
+        tableWrap.appendChild(statsTable);
+        content.appendChild(tableWrap);
+
+        // Check if rocket is at a colony and calculate fuel availability
+        const originColony = session.company.colonies.find(c => c.locationId.getId() === rocket.getLocation().getId());
+        if (originColony) {
+            const fuelItem = originColony.getItemPositions().find(i => i.good.getId() === 3);
+            const currentFuel = fuelItem ? fuelItem.quantity : 0;
+            const fuelShortfall = Math.max(0, fuelUnits - currentFuel);
+
+            if (fuelShortfall > 0) {
+                const fuelGood = GoodsRegistry.get(3)!;
+                const buyFuelCost = fuelShortfall * fuelGood.marketBuyPrice;
+                const canAfford = session.company.getMoney() >= buyFuelCost;
+                const spaceAvailable = originColony.getCapacity() - originColony.getTotalQuantity();
+                const canStore = spaceAvailable >= fuelShortfall;
+                const canBuy = canAfford && canStore;
+
+                const buyFuelInfo = GUI.div({
+                    classes: ['row'],
+                    styles: { gap: '8px', marginTop: '12px', alignItems: 'center', flexWrap: 'wrap' }
+                });
+
+                const infoText = GUI.span({
+                    textContent: `Need ${GUI.formatNumber(fuelShortfall)} more Fuel`,
+                    classes: ['text-secondary']
+                });
+                buyFuelInfo.appendChild(infoText);
+
+                const buyFuelBtn = GUI.button({
+                    classes: ['btn', 'btn-small'],
+                    textContent: `Buy Fuel (${GUI.formatMoney(buyFuelCost)})`,
+                    onClick: () => {
+                        if (canBuy) {
+                            session.company.deductMoney(buyFuelCost);
+                            originColony.addItemPosition(new ItemPosition(fuelGood, fuelShortfall));
+                            this.update(ModalType.EXPLORATION, data);
+                        }
+                    }
+                });
+
+                if (!canBuy) {
+                    buyFuelBtn.disabled = true;
+                    buyFuelBtn.style.opacity = '0.5';
+                    buyFuelBtn.style.cursor = 'not-allowed';
+                    if (!canAfford) {
+                        buyFuelBtn.title = 'Not enough money';
+                    } else if (!canStore) {
+                        buyFuelBtn.title = `Not enough storage space (need ${fuelShortfall}, have ${spaceAvailable})`;
+                    }
+                }
+
+                buyFuelInfo.appendChild(buyFuelBtn);
+                content.appendChild(buyFuelInfo);
+            }
+        }
+
+        let actions = GUI.query<HTMLElement>('.modal-actions', modal);
+        if (!actions) {
+            actions = GUI.div({ classes: ['modal-actions'] });
+            modal.appendChild(actions);
+        }
+        GUI.clearChildren(actions);
+
+        actions.appendChild(GUI.button({
+            classes: ['btn', 'btn-secondary'],
+            textContent: 'Cancel',
+            onClick: () => this.close(ModalType.EXPLORATION)
+        }));
+
+        actions.appendChild(GUI.button({
+            classes: ['btn', 'btn-small'],
+            textContent: 'Launch Exploration',
+            onClick: () => {
+                if (!this.onStartExplorationCallback) return;
+                const ok = this.onStartExplorationCallback(rocket, data.selectedTargetType!);
+                if (ok) this.close(ModalType.EXPLORATION);
+            }
+        }));
+    }
+
+    private createTravelModal(data: { rocket: Rocket; session: GameSession; selectedTargetType?: LocationType }): HTMLElement {
+        const modal = GUI.section({
+            classes: ['travel-view', 'modal']
+        });
+
+        const hotbar = GUI.createViewHotbar('Travel', () => this.close(ModalType.TRAVEL));
+        const content = GUI.createViewContent([], true);
+        const actions = GUI.div({ classes: ['modal-actions'] });
+
+        modal.appendChild(hotbar);
+        modal.appendChild(content);
+        modal.appendChild(actions);
+
+        this.setupCloseButton(modal, ModalType.TRAVEL);
+        this.updateTravelModal(modal, data);
+
+        return modal;
+    }
+
+    private updateTravelModal(modal: HTMLElement, data: { rocket: Rocket; session: GameSession; selectedTargetType?: LocationType }): void {
+        const content = GUI.query<HTMLElement>('.view-content', modal);
+        if (!content) return;
+
+        GUI.clearChildren(content);
+
+        const { rocket, session } = data;
+        const fromType = rocket.getLocation().getType();
+
+        // Find all colonized locations that are not the current location
+        const colonized = session.company.colonies
+            .map(c => c.locationId.getType())
+            .filter(t => t !== fromType)
+            .filter(t => t !== LocationType.TRAVELING);
+        
+        // Filter to only those with valid connections
+        const possibleTargets = colonized.filter(t =>
+            SpaceConnections.some(conn => conn.from === fromType && conn.to === t)
+        );
+
+        content.appendChild(GUI.p({
+            textContent: `Rocket: ${rocket.name} (from ${rocket.getLocation().name})`,
+            classes: ['text-secondary']
+        }));
+
+        if (rocket.getDestination()) {
+            content.appendChild(GUI.p({
+                textContent: 'This rocket is currently traveling.',
+                classes: ['text-muted']
+            }));
+            return;
+        }
+
+        if (possibleTargets.length === 0) {
+            content.appendChild(GUI.p({
+                textContent: 'No valid travel destinations available. Establish more colonies to travel between them.',
+                classes: ['text-muted']
+            }));
+            return;
+        }
+
+        const selectedTarget = data.selectedTargetType && possibleTargets.some(t => t === data.selectedTargetType)
+            ? data.selectedTargetType
+            : possibleTargets[0];
+        data.selectedTargetType = selectedTarget;
+
+        const selectWrap = GUI.div({ classes: ['row'], styles: { gap: '8px', alignItems: 'center', marginBottom: '16px' } });
+        selectWrap.appendChild(GUI.span({ textContent: 'Destination:', classes: ['text-secondary'] }));
+
+        const select = document.createElement('select');
+        select.classList.add('btn', 'btn-secondary');
+        select.id = 'travel-target-select';
+        possibleTargets.forEach(t => {
+            const option = document.createElement('option');
+            option.value = t;
+            option.textContent = t;
+            if (t === selectedTarget) option.selected = true;
+            select.appendChild(option);
+        });
+        select.onchange = () => {
+            data.selectedTargetType = select.value as LocationType;
+            this.update(ModalType.TRAVEL, data);
+        };
+        selectWrap.appendChild(select);
+        content.appendChild(selectWrap);
+
+        const connection = SpaceConnections.find(conn => conn.from === fromType && conn.to === selectedTarget);
+        if (!connection) {
+            content.appendChild(GUI.p({ textContent: 'No route available.', classes: ['text-muted'] }));
+            return;
+        }
+
+        const fuelUnits = connection.fuelCost;
+        const travelSol = connection.travelTime;
+
+        const tableWrap = GUI.div({ classes: ['lvl-table-wrap'] });
+        const statsTable = GUI.table({
+            classes: ['lvl-table'],
+            children: [
+                GUI.row([
+                    GUI.span({ textContent: 'Travel time', classes: ['lvl-property-name'] }),
+                    GUI.span({ textContent: `${travelSol} sol`, classes: ['lvl-property-value'] })
+                ]),
+                GUI.row([
+                    GUI.span({ textContent: 'Fuel required', classes: ['lvl-property-name'] }),
+                    GUI.span({ textContent: GUI.formatNumber(fuelUnits), classes: ['lvl-property-value'] })
+                ])
+            ]
+        });
+        tableWrap.appendChild(statsTable);
+        content.appendChild(tableWrap);
+
+        // Check if rocket is at a colony and calculate fuel availability
+        const originColony = session.company.colonies.find(c => c.locationId.getId() === rocket.getLocation().getId());
+        if (originColony) {
+            const fuelItem = originColony.getItemPositions().find(i => i.good.getId() === 3);
+            const currentFuel = fuelItem ? fuelItem.quantity : 0;
+            const fuelShortfall = Math.max(0, fuelUnits - currentFuel);
+
+            if (fuelShortfall > 0) {
+                const fuelGood = GoodsRegistry.get(3)!;
+                const buyFuelCost = fuelShortfall * fuelGood.marketBuyPrice;
+                const canAfford = session.company.getMoney() >= buyFuelCost;
+                const spaceAvailable = originColony.getCapacity() - originColony.getTotalQuantity();
+                const canStore = spaceAvailable >= fuelShortfall;
+                const canBuy = canAfford && canStore;
+
+                const buyFuelInfo = GUI.div({
+                    classes: ['row'],
+                    styles: { gap: '8px', marginTop: '12px', alignItems: 'center', flexWrap: 'wrap' }
+                });
+
+                const infoText = GUI.span({
+                    textContent: `Need ${GUI.formatNumber(fuelShortfall)} more Fuel`,
+                    classes: ['text-secondary']
+                });
+                buyFuelInfo.appendChild(infoText);
+
+                const buyFuelBtn = GUI.button({
+                    classes: ['btn', 'btn-small'],
+                    textContent: `Buy Fuel (${GUI.formatMoney(buyFuelCost)})`,
+                    onClick: () => {
+                        if (canBuy) {
+                            session.company.deductMoney(buyFuelCost);
+                            originColony.addItemPosition(new ItemPosition(fuelGood, fuelShortfall));
+                            this.update(ModalType.TRAVEL, data);
+                        }
+                    }
+                });
+
+                if (!canBuy) {
+                    buyFuelBtn.disabled = true;
+                    buyFuelBtn.style.opacity = '0.5';
+                    buyFuelBtn.style.cursor = 'not-allowed';
+                    if (!canAfford) {
+                        buyFuelBtn.title = 'Not enough money';
+                    } else if (!canStore) {
+                        buyFuelBtn.title = `Not enough storage space (need ${fuelShortfall}, have ${spaceAvailable})`;
+                    }
+                }
+
+                buyFuelInfo.appendChild(buyFuelBtn);
+                content.appendChild(buyFuelInfo);
+            }
+        }
+
+        let actions = GUI.query<HTMLElement>('.modal-actions', modal);
+        if (!actions) {
+            actions = GUI.div({ classes: ['modal-actions'] });
+            modal.appendChild(actions);
+        }
+        GUI.clearChildren(actions);
+
+        actions.appendChild(GUI.button({
+            classes: ['btn', 'btn-secondary'],
+            textContent: 'Cancel',
+            onClick: () => this.close(ModalType.TRAVEL)
+        }));
+
+        actions.appendChild(GUI.button({
+            classes: ['btn', 'btn-small'],
+            textContent: 'Launch Travel',
+            onClick: () => {
+                if (!this.onStartTravelCallback) return;
+                const ok = this.onStartTravelCallback(rocket, data.selectedTargetType!);
+                if (ok) this.close(ModalType.TRAVEL);
+            }
+        }));
     }
 
     /**
@@ -360,12 +825,14 @@ class ModalManager implements ModalController {
     }
 
     private createRocketModal(rocket: Rocket & LevelSystem): HTMLElement {
-        return this.createGenericLevelSystemModal(
+        const modal = this.createGenericLevelSystemModal(
             'Rocket',
             'Upgrade your rocket to reach new planets and explore the universe!',
             rocket,
-            ModalType.ROCKET
+            ModalType.ROCKET,
+            this.createRocketAdditionalContent(rocket)
         );
+        return modal;
     }
 
     private updateRocketModal(modal: HTMLElement, rocket: Rocket & LevelSystem): void {
@@ -373,8 +840,67 @@ class ModalManager implements ModalController {
             modal,
             rocket,
             'Upgrade your rocket to reach new planets and explore the universe!',
-            ModalType.ROCKET
+            ModalType.ROCKET,
+            this.createRocketAdditionalContent(rocket)
         );
+    }
+
+    private createRocketAdditionalContent(rocket: Rocket): HTMLElement[] {
+        const content: HTMLElement[] = [];
+        const destination = rocket.getDestination();
+        
+        if (destination) {
+            // Rocket is traveling
+            const statusDiv = GUI.div({
+                classes: ['card'],
+                styles: { marginTop: '16px' },
+                children: [
+                    GUI.p({ 
+                        textContent: `Traveling to: ${destination.name}`,
+                        styles: { fontWeight: 'bold' }
+                    })
+                ]
+            });
+
+            // Add progress bar if we have initialTravelTime
+            if (rocket.initialTravelTime > 0) {
+                const progress = Math.max(0, Math.min(100, ((rocket.initialTravelTime - rocket.estimatedTravelTime) / rocket.initialTravelTime) * 100));
+                const progressBar = GUI.div({
+                    classes: ['sol-progress-bar'],
+                    styles: { marginTop: '12px', marginBottom: '8px' },
+                    children: [
+                        GUI.div({
+                            classes: ['sol-progress-fill'],
+                            styles: { width: `${progress}%` }
+                        })
+                    ]
+                });
+                const remainingSol = rocket.estimatedTravelTime / config.minutesPerSol;
+                const progressText = GUI.p({
+                    textContent: `${Math.round(progress)}% complete - ${remainingSol.toFixed(1)} sol remaining`,
+                    classes: ['text-secondary']
+                });
+                statusDiv.appendChild(progressBar);
+                statusDiv.appendChild(progressText);
+            }
+
+            content.push(statusDiv);
+        } else {
+            // Rocket is docked
+            const locationDiv = GUI.div({
+                classes: ['card'],
+                styles: { marginTop: '16px' },
+                children: [
+                    GUI.p({ 
+                        textContent: `Docked at: ${rocket.getLocation().name}`,
+                        classes: ['text-secondary']
+                    })
+                ]
+            });
+            content.push(locationDiv);
+        }
+
+        return content;
     }
 
     private createColonyModal(colony: Colony): HTMLElement {
@@ -649,7 +1175,7 @@ class ModalManager implements ModalController {
                     classes: ['text-secondary']
                 }),
                 GUI.p({
-                    textContent: `Rocket Storage: ${GUI.formatNumber(rocket.getTotalQuantity())}/${GUI.formatNumber(rocket.getCapacity())}`,
+                    textContent: `Rocket Storage: ${GUI.formatNumber(rocket.getTotalQuantity(), true)}/${GUI.formatNumber(rocket.getCapacity())}`,
                     classes: ['text-secondary']
                 })
             ]
@@ -737,7 +1263,7 @@ class ModalManager implements ModalController {
                     children: [
                         GUI.heading(4, { textContent: item.good.name }),
                         GUI.p({
-                            textContent: `Available: ${GUI.formatNumber(item.quantity)}`,
+                            textContent: `Available: ${GUI.formatNumber(item.quantity, true)}`,
                             classes: ['text-secondary']
                         })
                     ]
@@ -792,7 +1318,7 @@ class ModalManager implements ModalController {
                     children: [
                         GUI.heading(4, { textContent: item.good.name }),
                         GUI.p({
-                            textContent: `On Rocket: ${GUI.formatNumber(item.quantity)}`,
+                            textContent: `On Rocket: ${GUI.formatNumber(item.quantity, true)}`,
                             classes: ['text-secondary']
                         })
                     ]
@@ -852,11 +1378,11 @@ class ModalManager implements ModalController {
                             classes: ['cargo-quantities'],
                             children: [
                                 GUI.p({
-                                    textContent: `Location: ${GUI.formatNumber(sourceQty)}`,
+                                    textContent: `Location: ${GUI.formatNumber(sourceQty, true)}`,
                                     classes: ['text-secondary']
                                 }),
                                 GUI.p({
-                                    textContent: `Rocket: ${GUI.formatNumber(rocketQty)}`,
+                                    textContent: `Rocket: ${GUI.formatNumber(rocketQty, true)}`,
                                     classes: ['text-secondary']
                                 })
                             ]
@@ -872,7 +1398,7 @@ class ModalManager implements ModalController {
         if (rocketQty > 0) {
             const unloadSection = GUI.div({ classes: ['cargo-control-section'] });
             const amounts = [1, 10, 50];
-            
+
             amounts.forEach(amount => {
                 if (amount <= rocketQty) {
                     const btn = GUI.button({
@@ -895,7 +1421,7 @@ class ModalManager implements ModalController {
                     unloadSection.appendChild(btn);
                 }
             });
-            
+
             controls.appendChild(unloadSection);
         }
 
@@ -903,7 +1429,7 @@ class ModalManager implements ModalController {
         if (sourceQty > 0) {
             const loadSection = GUI.div({ classes: ['cargo-control-section'] });
             const amounts = [1, 10, 50];
-            
+
             amounts.forEach(amount => {
                 if (amount <= sourceQty) {
                     const btn = GUI.button({
@@ -926,7 +1452,7 @@ class ModalManager implements ModalController {
                     loadSection.appendChild(btn);
                 }
             });
-            
+
             controls.appendChild(loadSection);
         }
 
@@ -1066,6 +1592,9 @@ class ModalManager implements ModalController {
             return;
         }
 
+        // Calculate generic module cost base: 1000 * 10^(number of modules)
+        const baseModuleCost = 50 * Math.pow(5, modules.length); // Adjusted scaling for better pacing
+
         // Infrastructure Modules Section
         const infraTitle = GUI.heading(2, { textContent: 'Infrastructure Modules' });
         content.appendChild(infraTitle);
@@ -1080,6 +1609,8 @@ class ModalManager implements ModalController {
 
         // Add infrastructure module options
         Object.entries(INFRASTRUCTURE_CONFIGS).forEach(([typeId, config]) => {
+            const infraCost = baseModuleCost * 5; // 5x price for infrastructure "in addition" (assuming multiplier)
+
             const infraCard = GUI.div({
                 classes: ['good-selection-card', 'clickable', 'infrastructure-card'],
                 children: [
@@ -1090,7 +1621,7 @@ class ModalManager implements ModalController {
                     GUI.span({ classes: ['good-name'], textContent: config.name }),
                     GUI.span({
                         classes: ['good-production'],
-                        textContent: 'Infrastructure'
+                        textContent: `Cost: ${GUI.formatMoney(infraCost)}`
                     })
                 ],
                 styles: {
@@ -1101,13 +1632,22 @@ class ModalManager implements ModalController {
 
             infraCard.onclick = () => {
                 const newModule = new InfrastructureModuleClass(Number(typeId) as InfrastructureType);
-                if (colony.addColonyModule(newModule)) {
-                    this.close(ModalType.BUILD_MODULE);
-                    // Refresh the colony modal
-                    if (this.isOpen(ModalType.COLONY)) {
-                        this.update(ModalType.COLONY, colony);
+                if (this.onBuildModuleCallback) {
+                    if (this.onBuildModuleCallback(colony, newModule, infraCost)) {
+                        this.close(ModalType.BUILD_MODULE);
+                        // Refresh the colony modal
+                        if (this.isOpen(ModalType.COLONY)) {
+                            this.update(ModalType.COLONY, colony);
+                        }
                     }
-                    this.showNotification(`Added ${config.name} infrastructure module!`);
+                } else {
+                    // Fallback if no callback (shouldn't happen in proper setup)
+                    if (colony.addColonyModule(newModule)) {
+                        this.close(ModalType.BUILD_MODULE);
+                        if (this.isOpen(ModalType.COLONY)) {
+                            this.update(ModalType.COLONY, colony);
+                        }
+                    }
                 }
             };
 
@@ -1141,6 +1681,8 @@ class ModalManager implements ModalController {
         const goodsGrid = GUI.div({ classes: ['goods-selection-grid'] });
 
         this.goodsRegistry.forEach((good, goodId) => {
+            const prodCost = baseModuleCost;
+
             const goodCard = GUI.div({
                 classes: ['good-selection-card', 'clickable'],
                 children: [
@@ -1151,20 +1693,31 @@ class ModalManager implements ModalController {
                     GUI.span({ classes: ['good-name'], textContent: good.name }),
                     GUI.span({
                         classes: ['good-production'],
-                        textContent: '+1 t/sol base'
+                        textContent: `Cost: ${GUI.formatMoney(prodCost)}`
                     })
-                ]
+                ],
+                styles: {
+                    // Slight visual distinction?
+                }
             });
 
             goodCard.onclick = () => {
                 const newModule = new ProductionModuleClass(goodId, 1);
-                if (colony.addColonyModule(newModule)) {
-                    this.close(ModalType.BUILD_MODULE);
-                    // Refresh the colony modal
-                    if (this.isOpen(ModalType.COLONY)) {
-                        this.update(ModalType.COLONY, colony);
+                if (this.onBuildModuleCallback) {
+                    if (this.onBuildModuleCallback(colony, newModule, prodCost)) {
+                        this.close(ModalType.BUILD_MODULE);
+                        // Refresh the colony modal
+                        if (this.isOpen(ModalType.COLONY)) {
+                            this.update(ModalType.COLONY, colony);
+                        }
                     }
-                    this.showNotification(`Added ${good.name} production module!`);
+                } else {
+                    if (colony.addColonyModule(newModule)) {
+                        this.close(ModalType.BUILD_MODULE);
+                        if (this.isOpen(ModalType.COLONY)) {
+                            this.update(ModalType.COLONY, colony);
+                        }
+                    }
                 }
             };
 
@@ -1180,7 +1733,7 @@ class ModalManager implements ModalController {
     private updateSettingsModal(modal: HTMLElement, data: any): void {
         const content = GUI.query<HTMLElement>('.view-content', modal);
         if (!content) return;
-        
+
         GUI.clearChildren(content);
 
         // General Settings Section
@@ -1197,15 +1750,15 @@ class ModalManager implements ModalController {
             }
         });
         content.appendChild(newGameBtn);
-        
+
         // Cheats Section
-        const cheatsTitle = GUI.createElement('h3', { 
-            textContent: 'Cheats / Debug', 
-            styles: { marginTop: '20px' } 
+        const cheatsTitle = GUI.createElement('h3', {
+            textContent: 'Cheats / Debug',
+            styles: { marginTop: '20px' }
         });
         content.appendChild(cheatsTitle);
-        
-        const cheatsContainer = GUI.div({ 
+
+        const cheatsContainer = GUI.div({
             classes: ['column'],
             styles: { gap: '10px', marginTop: '10px' }
         });
@@ -1216,12 +1769,12 @@ class ModalManager implements ModalController {
             children: [
                 GUI.createElement('span', { classes: ['material-symbols-rounded'], textContent: 'add' }),
                 GUI.div({
-                     classes: ['column'],
-                     styles: { alignItems: 'flex-start' },
-                     children: [
+                    classes: ['column'],
+                    styles: { alignItems: 'flex-start' },
+                    children: [
                         GUI.createElement('h3', { textContent: 'Add 1M Credits' }),
                         GUI.createElement('span', { textContent: 'Cheat', styles: { fontSize: '0.8em', opacity: '0.7' } })
-                     ]
+                    ]
                 })
             ],
             onClick: () => {
@@ -1234,23 +1787,307 @@ class ModalManager implements ModalController {
         const addBigMoneyBtn = GUI.createElement('button', {
             classes: ['btn', 'btn-upgrade'],
             children: [
-                 GUI.createElement('span', { classes: ['material-symbols-rounded'], textContent: 'add' }),
-                 GUI.div({
-                     classes: ['column'],
-                     styles: { alignItems: 'flex-start' },
-                     children: [
+                GUI.createElement('span', { classes: ['material-symbols-rounded'], textContent: 'add' }),
+                GUI.div({
+                    classes: ['column'],
+                    styles: { alignItems: 'flex-start' },
+                    children: [
                         GUI.createElement('h3', { textContent: 'Add 10M Credits' }),
                         GUI.createElement('span', { textContent: 'Cheat', styles: { fontSize: '0.8em', opacity: '0.7' } })
-                     ]
+                    ]
                 })
             ],
             onClick: () => {
-                 this.settingsActionCallback?.('cheat-money', 10_000_000);
+                this.settingsActionCallback?.('cheat-money', 10_000_000);
             }
         });
         cheatsContainer.appendChild(addBigMoneyBtn);
 
         content.appendChild(cheatsContainer);
+    }
+
+    /**
+     * Create rocket fleet modal
+     */
+    private createRocketFleetModal(data: { colony: Colony, rocketCount: number }): HTMLElement {
+        const modal = GUI.section({
+            classes: ['rocket-fleet-view', 'modal']
+        });
+
+        const hotbar = GUI.createViewHotbar('Rocket Fleet', () => this.close(ModalType.ROCKET_FLEET));
+        const content = GUI.createViewContent([], true);
+
+        modal.appendChild(hotbar);
+        modal.appendChild(content);
+
+        this.setupCloseButton(modal, ModalType.ROCKET_FLEET);
+        this.updateRocketFleetModal(modal, data);
+
+        return modal;
+    }
+
+    /**
+     * Update rocket fleet modal
+     */
+    private updateRocketFleetModal(modal: HTMLElement, data: { colony: Colony, rocketCount: number }): void {
+        const { colony, rocketCount } = data;
+        const content = GUI.query<HTMLElement>('.view-content', modal);
+        if (!content) return;
+
+        GUI.clearChildren(content);
+
+        // Check for Rocket Lab
+        const rocketLab = colony.getInfrastructureModules().find(m => m.infrastructureId === InfrastructureType.ROCKET_LAB);
+
+        if (!rocketLab) {
+            // No rocket lab - show requirement
+            const noLabHeader = GUI.div({
+                classes: ['cargo-header'],
+                children: [
+                    GUI.p({ textContent: 'Rocket Lab Required' }),
+                    GUI.p({
+                        textContent: 'Build a Rocket Lab infrastructure module to unlock rocket construction.',
+                        classes: ['text-secondary']
+                    })
+                ]
+            });
+            content.appendChild(noLabHeader);
+            return;
+        }
+
+        // Fleet Status Header
+        const capacity = rocketLab.getBenefitValue();
+        const canBuild = rocketCount < capacity;
+
+        const fleetHeader = GUI.div({
+            classes: ['cargo-header'],
+            children: [
+                GUI.p({ textContent: `Location: ${colony.name}` }),
+                GUI.p({
+                    textContent: `Fleet Size: ${rocketCount}/${capacity} Rockets`,
+                    classes: ['text-secondary']
+                }),
+                GUI.p({ 
+                    textContent: `Rocket Lab Level: ${rocketLab.getLevel()}`,
+                    classes: ['text-secondary']
+                })
+            ]
+        });
+        content.appendChild(fleetHeader);
+
+        // Section title
+        const buildTitle = GUI.heading(3, { textContent: 'Build New Rocket' });
+        content.appendChild(buildTitle);
+
+        // Capacity Check
+        if (!canBuild) {
+            const capacityCard = GUI.div({
+                classes: ['cargo-good-card', 'cargo-unload'],
+                children: [
+                    GUI.p({ 
+                        textContent: 'Capacity reached. Upgrade the Rocket Lab to build more rockets.',
+                        styles: { margin: '0' }
+                    })
+                ]
+            });
+            content.appendChild(capacityCard);
+        }
+
+        // Cost Calculation
+        const scale = Math.pow(1.5, rocketCount);
+        const costs = [
+            { id: 3, name: 'Fuel', amount: Math.floor(50 * scale), icon: 'oil_barrel' },
+            { id: 7, name: 'O2', amount: Math.floor(50 * scale), icon: 'spo2' },
+            { id: 4, name: 'Computer', amount: Math.floor(10 * scale), icon: 'memory' },
+            { id: 5, name: 'Circuit Board', amount: Math.floor(20 * scale), icon: 'memory' }
+        ];
+
+        // Check availability
+        let canAfford = true;
+        const colonyItems = colony.getItemPositions();
+
+        // Resource requirements in cards
+        const requirementsTitle = GUI.p({ 
+            textContent: 'Required Resources:',
+            styles: { marginBottom: '0.5rem', opacity: '0.8' }
+        });
+        content.appendChild(requirementsTitle);
+
+        const goodsList = GUI.div({ classes: ['cargo-goods-list'] });
+
+        costs.forEach(cost => {
+            const hasItem = colonyItems.find(i => i.good.getId() === cost.id);
+            const hasAmount = hasItem ? hasItem.quantity : 0;
+            const isEnough = hasAmount >= cost.amount;
+            if (!isEnough) canAfford = false;
+
+            const goodCard = GUI.div({
+                classes: ['cargo-good-card', 'cargo-merged'],
+                children: [
+                    GUI.div({
+                        classes: ['cargo-good-info'],
+                        children: [
+                            GUI.div({
+                                styles: { display: 'flex', alignItems: 'center', gap: '0.5rem' },
+                                children: [
+                                    GUI.materialIcon(cost.icon, { 
+                                        styles: { fontSize: '20px' }
+                                    }),
+                                    GUI.heading(4, { 
+                                        textContent: cost.name,
+                                        styles: { margin: '0' }
+                                    })
+                                ]
+                            })
+                        ]
+                    }),
+                    GUI.div({
+                        classes: ['cargo-quantities'],
+                        children: [
+                            GUI.p({ textContent: `Required: ${GUI.formatNumber(cost.amount)}` }),
+                            GUI.p({ 
+                                textContent: `Available: ${GUI.formatNumber(hasAmount)}`,
+                                classes: [isEnough ? 'text-success' : 'text-danger']
+                            })
+                        ]
+                    })
+                ]
+            });
+            goodsList.appendChild(goodCard);
+        });
+
+        content.appendChild(goodsList);
+
+        // Find or create modal-actions container
+        let actions = GUI.query<HTMLElement>('.modal-actions', modal);
+        if (!actions) {
+            actions = GUI.div({ classes: ['modal-actions'] });
+            modal.appendChild(actions);
+        }
+        GUI.clearChildren(actions);
+
+        // Build Button
+        const buildBtn = GUI.button({
+            classes: ['btn', 'btn-upgrade'],
+            children: [
+                GUI.materialIcon('rocket_launch', {}),
+                GUI.div({
+                    classes: ['column'],
+                    styles: { alignItems: 'flex-start' },
+                    children: [
+                        GUI.heading(3, { textContent: 'Build Rocket', styles: { margin: '0' } }),
+                        GUI.span({ 
+                            textContent: canAfford && canBuild ? 'Construct new rocket' : 'Requirements not met',
+                            styles: { fontSize: '0.9em', opacity: '0.8' }
+                        })
+                    ]
+                })
+            ],
+            onClick: () => {
+                if (this.onBuildRocketCallback) {
+                    if (this.onBuildRocketCallback(colony)) {
+                        this.close(ModalType.ROCKET_FLEET);
+                    }
+                }
+            }
+        });
+
+        if (!canBuild || !canAfford) {
+            buildBtn.disabled = true;
+            buildBtn.classList.add('btn-disabled');
+            buildBtn.style.opacity = '0.5';
+            buildBtn.style.cursor = 'not-allowed';
+        }
+
+        actions.appendChild(buildBtn);
+    }
+
+    /* Tutorial Modal */
+
+    private createTutorialModal(data: any): HTMLElement {
+        const modal = GUI.section({
+            classes: ['modal', 'tutorial-modal'],
+            id: 'tutorial-modal'
+        });
+
+        const container = GUI.div({ classes: ['tutorial-container'] });
+        modal.appendChild(container);
+
+        this.updateTutorialModal(modal, data);
+
+        return modal;
+    }
+
+    private updateTutorialModal(modal: HTMLElement, data: any): void {
+        const container = modal.querySelector('.tutorial-container');
+        if (!container) return;
+        
+        GUI.clearChildren(container as HTMLElement);
+
+        // Header
+        const header = GUI.div({ 
+            classes: ['tutorial-header'],
+            children: [
+                GUI.heading(2, { 
+                    textContent: data.title 
+                }),
+                GUI.div({
+                    classes: ['tutorial-step-indicator'],
+                    textContent: data.isStart ? '' : `${data.step + 1} / ${data.totalSteps}`
+                })
+            ]
+        });
+
+        // Content
+        const content = GUI.div({
+            classes: ['tutorial-content'],
+            children: [
+                GUI.p({ textContent: data.text })
+            ]
+        });
+
+        // Actions
+        const actions = GUI.div({ classes: ['tutorial-actions'] });
+
+        // Skip button (always available except maybe on the last step if we want forced completion, but user requirement says skippable)
+        // If it's the start, it's "No thanks". If it's in progress, it's "Skip Tutorial".
+        if (data.canSkip !== false) {
+            const skipBtn = GUI.button({
+                classes: ['btn', 'btn-secondary'],
+                textContent: data.isStart ? 'Skip Tour' : 'End Tour',
+                onClick: () => {
+                   if (data.onSkip) data.onSkip();
+                }
+            });
+            actions.appendChild(skipBtn);
+        }
+
+        // Next/Start button
+        const nextBtn = GUI.button({
+            classes: ['btn', 'btn-small'],
+            textContent: data.isStart ? 'Start Tour' : (data.isEnd ? 'Finish' : 'Next'),
+            onClick: () => {
+                if (data.onNext) data.onNext();
+            }
+        });
+        actions.appendChild(nextBtn);
+
+        container.appendChild(header);
+        container.appendChild(content);
+        container.appendChild(actions);
+
+        // Handle highlighting
+        // First remove all existing highlights
+        document.querySelectorAll('.tutorial-highlight').forEach(el => el.classList.remove('tutorial-highlight'));
+        
+        if (data.highlightElement) {
+            const target = document.querySelector(data.highlightElement);
+            if (target) {
+                target.classList.add('tutorial-highlight');
+                // Optional: Scroll to element
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
     }
 }
 

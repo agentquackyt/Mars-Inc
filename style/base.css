@@ -32,3 +32,11 @@ html {
 .text-muted {
     color: var(--text-muted);
 }
+
+.text-success {
+    color: var(--action-upgrade);
+}
+
+.text-danger {
+    color: var(--action-unload);
+}

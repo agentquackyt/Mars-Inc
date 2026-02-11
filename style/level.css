@@ -1,12 +1,12 @@
 /* Level menu card */
 .lvl-view-card {
     background: var(--mars-soil);
-    border: 3px solid var(--mars-rust);
-    border-radius: 5px;
+    border: var(--border-width-md) solid var(--mars-rust);
+    border-radius: var(--radius-md);
     aspect-ratio: 1/1;
-    width: 80px;
-    height: 80px;
-    margin-left: .5rem;
+    width: var(--size-card-sm);
+    height: var(--size-card-sm);
+    margin-left: var(--spacing-sm);
 
     display: flex;
     flex-direction: column;
@@ -16,27 +16,27 @@
 
 .lvl-view-card .lvl-label {
     color: var(--text-primary);
-    font-size: 15px;
+    font-size: var(--font-size-15);
     text-align: center;
-    margin-top: 0.5rem;
+    margin-top: var(--spacing-sm);
 }
 
 .lvl-view-card .lvl-number {
-    font-size: 30px;
+    font-size: var(--font-size-30);
     font-weight: 600;
 }
 
 /* Level table */
 .lvl-table {
-    border: 2px solid var(--ui-bg-dark);
-    border-radius: 8px;
+    border: var(--border-width-sm) solid var(--ui-bg-dark);
+    border-radius: var(--radius-xl);
     border-collapse: collapse;
     width: 100%;
 }
 
 .lvl-table td {
-    border-right: 2px solid var(--ui-bg-dark);
-    padding: 6px .75rem;
+    border-right: var(--border-width-sm) solid var(--ui-bg-dark);
+    padding: var(--spacing-sm) var(--spacing-md);
 }
 
 .lvl-table td:first-child {
@@ -45,36 +45,36 @@
 }
 
 .lvl-upgrade-modifier {
-    margin-left: .5rem;
-    font-size: 14px;
+    margin-left: var(--spacing-sm);
+    font-size: var(--font-size-14);
     background: var(--action-upgrade);
     color: var(--action-upgrade-text);
     font-weight: 600;
-    padding: 2px 4px;
-    border-radius: 3px;
+    padding: var(--border-width-sm) var(--radius-sm);
+    border-radius: var(--radius-xs);
 }
 
 /* Module grid */
 .module-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    margin-top: 1rem;
-    margin-bottom: 1rem;
+    gap: var(--gap-lg);
+    margin-top: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
 }
 
 .module-grid>.module-card {
-    border: 3px solid var(--ui-bg-dark);
-    border-radius: 10px;
+    border: var(--border-width-md) solid var(--ui-bg-dark);
+    border-radius: var(--radius-2xl);
     aspect-ratio: 1/1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: space-around;
     text-align: center;
-    padding: .3rem;
-    font-size: 14px;
-    width: 120px;
+    padding: var(--spacing-sm);
+    font-size: var(--font-size-14);
+    max-width: var(--size-card-md);
 }
 
 .module-icon {
@@ -83,13 +83,13 @@
         'wght' 400,
         'GRAD' 0,
         'opsz' 40;
-    font-size: 35px;
+    font-size: var(--font-size-35);
     color: var(--text-primary);
 }
 
 .module-card.filled {
     background: var(--mars-soil);
-    border: 3px solid var(--mars-rust);
+    border: var(--border-width-md) solid var(--mars-rust);
     box-shadow: var(--shadow-card);
 }
 
@@ -100,11 +100,11 @@
 
 .module-card.clickable:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-small);
 }
 
 .module-level {
-    font-size: 12px;
+    font-size: var(--font-size-12);
     color: var(--text-secondary);
     font-weight: 600;
 }
@@ -113,19 +113,19 @@
 .production-list {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-    margin-bottom: 1rem;
+    gap: var(--gap-sm);
+    margin-top: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
 }
 
 .production-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.5rem 0.75rem;
+    padding: var(--spacing-sm) var(--spacing-md);
     background: var(--ui-bg-dark);
-    border: 2px solid var(--ui-border);
-    border-radius: 6px;
+    border: var(--border-width-sm) solid var(--ui-border);
+    border-radius: var(--radius-lg);
 }
 
 .production-good-name {
@@ -141,9 +141,9 @@
 /* Build Module Modal */
 .goods-selection-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(var(--size-card-md), 1fr));
+    gap: var(--gap-lg);
+    margin-top: var(--spacing-lg);
 }
 
 .good-selection-card {
@@ -151,18 +151,18 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    padding: 1rem;
+    gap: var(--gap-sm);
+    padding: var(--spacing-lg);
     background: var(--mars-soil);
-    border: 2px solid var(--ui-border);
-    border-radius: 8px;
+    border: var(--border-width-sm) solid var(--ui-border);
+    border-radius: var(--radius-xl);
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .good-selection-card:hover {
     border-color: var(--action-upgrade);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-small);
     transform: translateY(-2px);
 }
 
@@ -172,7 +172,7 @@
         'wght' 400,
         'GRAD' 0,
         'opsz' 40;
-    font-size: 40px;
+    font-size: var(--font-size-40);
     color: var(--text-primary)
 }
 
@@ -180,11 +180,11 @@
     font-weight: 600;
     text-align: center;
     color: var(--text-primary);
-    font-size: 14px;
+    font-size: var(--font-size-14);
 }
 
 .good-selection-card .good-production {
-    font-size: 12px;
+    font-size: var(--font-size-12);
     color: var(--text-secondary);
 }
 
@@ -213,7 +213,7 @@
 
 .module-card.empty:hover {
     border-color: var(--action-upgrade);
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--overlay-light);
 }
 
 /* Disabled upgrade button at max level */

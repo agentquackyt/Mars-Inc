@@ -398,8 +398,9 @@ function getLetterNotation(position: number): string {
  * Format large numbers with appropriate suffix (M, B, T, aa, ab, ...)
  * Rounds to 2 significant digits total length
  */
-export function formatNumber(value: number): string {
+export function formatNumber(value: number, floor: boolean = false): string {
     const suffixes = ['', 'K', 'M', 'B', 'T'];
+    value = floor ? Math.floor(value) : value;
 
     if (value < 1_000) {
         // For values < 1000, show up to 2 significant digits

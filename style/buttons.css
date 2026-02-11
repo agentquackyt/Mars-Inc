@@ -13,8 +13,7 @@
 /* Icon button */
 .btn-icon {
     background: none;
-    aspect-ratio: 1 / 1;
-    width: 50px;
+    aspect-ratio: 1 / 1 !important;
 }
 
 .btn-icon .material-symbols-rounded {
@@ -23,7 +22,7 @@
         'wght' 400,
         'GRAD' 0,
         'opsz' 40;
-    font-size: 30px;
+    font-size: var(--size-icon-sm);
 }
 
 .btn-icon:hover {
@@ -33,12 +32,12 @@
 /* Upgrade button */
 .btn-upgrade, .btn-danger {
     background: var(--action-upgrade);
-    padding: 0.5rem 1rem;
-    border-radius: .75rem;
-    gap: 1rem;
-    border: 3px solid var(--action-upgrade-border);
-    border-bottom-width: 6px;
-    height: 60px;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border-radius: var(--radius-btn);
+    gap: var(--gap-lg);
+    border: var(--border-width-md) solid var(--action-upgrade-border);
+    border-bottom-width: var(--border-width-xl);
+    height: var(--size-btn-height);
 }
 
 .btn-danger {
@@ -48,12 +47,12 @@
 
 .btn-danger:active {
     background-color: var(--action-unload-border);
-    border-bottom-width: 2px;
+    border-bottom-width: var(--border-width-sm);
 }
 
 .btn-upgrade:active {
     color: var(--action-upgrade-text); 
-    border-bottom-width: 2px;
+    border-bottom-width: var(--border-width-sm);
 }
 
 .btn-upgrade .material-symbols-rounded, .btn-danger .material-symbols-rounded {
@@ -62,7 +61,7 @@
         'wght' 400,
         'GRAD' 0,
         'opsz' 40;
-    font-size: 35px;
+    font-size: var(--font-size-35);
 }
 
 /* Cost display */
@@ -73,12 +72,12 @@
 }
 
 .upgrade-cost-label {
-    font-size: 14px;
+    font-size: var(--font-size-14);
     font-weight: 500;
 }
 
 .upgrade-cost-amount {
-    font-size: 16px;
+    font-size: var(--font-size-16);
     font-weight: 700;
 }
 
@@ -95,10 +94,10 @@
 /* Secondary button variant */
 .btn-secondary {
     background: var(--ui-bg-dark);
-    border: 3px solid var(--ui-bg-light);
-    border-bottom-width: 6px;
-    padding: 0.5rem 1rem;
-    border-radius: 0.75rem;
+    border: var(--border-width-md) solid var(--ui-bg-light);
+    border-bottom-width: var(--border-width-xl);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border-radius: var(--radius-btn);
 }
 
 .btn-secondary:hover {
@@ -107,7 +106,7 @@
 }
 
 .btn-secondary:active {
-    border-bottom-width: 2px;
+    border-bottom-width: var(--border-width-sm);
 }
 
 /* Unload button variant (red) */
@@ -117,5 +116,5 @@
 }
 
 .btn-small.btn-unload:hover {
-    background: #c0392b;
+    background: var(--action-unload-hover);
 }

@@ -37,4 +37,20 @@ class SpaceLocation {
     }
 }
 
-export { LocationType, SpaceLocation };
+
+function getProductionModifierForLocation(locationType: LocationType): number {
+    switch (locationType) {
+        case LocationType.MARS:
+            return 5; // Reduced production on Mars
+        case LocationType.MOON:
+            return 4; // Slightly reduced production on the Moon
+        case LocationType.SPACE_STATION:
+            return 0.5; // Reduced production in space stations
+        case LocationType.TRAVELING:
+            return 0;
+        default:
+            return 1.0;
+    }
+}
+
+export { LocationType, SpaceLocation, getProductionModifierForLocation };

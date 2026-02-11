@@ -9,11 +9,15 @@ import { hudController } from './hudController';
 import { navigationController } from './navigationController';
 import { modalManager, ModalType } from './modalManager';
 import { GoodsRegistry } from './models/goodsRegistry';
+import { Rocket } from './models/storage';
+import { InfrastructureType } from './models/company';
+import { TutorialManager } from './tutorialManager';
 import * as GUI from './gui';
 
 // Initialize core systems
 const saveSystem = new SaveSystem();
 let gameManager: GameManager;
+let tutorialManager: TutorialManager;
 let isRunning = false;
 let lastUpdateTime = 0;
 
@@ -43,6 +47,9 @@ async function initialize(): Promise<void> {
         // Initialize modal manager with goods registry
         modalManager.setGoodsRegistry(GoodsRegistry);
 
+        // Setup tutorial manager
+        tutorialManager = new TutorialManager(gameManager);
+
         // Setup modal upgrade handlers
         setupModalHandlers();
 
@@ -53,6 +60,11 @@ async function initialize(): Promise<void> {
         isRunning = true;
         lastUpdateTime = Date.now();
         gameLoop();
+        
+        // Start tutorial if needed (new game or previously active)
+        if (!gameManager.session.tutorialCompleted) {
+             tutorialManager.startTutorial();
+        }
 
         console.log('[Mars Inc] Ready');
 
@@ -131,6 +143,110 @@ function setupModalHandlers(): void {
             updateUI();
         }
     });
+
+    // Handle module building
+    modalManager.onBuildModule((colony, module, cost) => {
+        const company = gameManager.getSession().company;
+        if (company.deductMoney(cost)) {
+            const oldMoney = company.getMoney() + cost;
+            colony.addColonyModule(module);
+            hudController.animateMoneyChange(oldMoney, company.getMoney());
+            hudController.showSuccess('Module constructed!');
+            updateUI(); // Full UI update
+            return true;
+        } else {
+            hudController.showError('Not enough credits!');
+            return false;
+        }
+    });
+
+    // Handle rocket building
+    modalManager.onBuildRocket((colony) => {
+         // Check Capacity
+        const rocketLab = colony.getInfrastructureModules().find(m => m.getModuleIdentifier() === InfrastructureType.ROCKET_LAB);
+        if (!rocketLab) {
+            hudController.showError('Rocket Lab required!');
+            return false;
+        }
+
+        // Count rockets at this colony
+        const existingRockets = gameManager.getSession().rockets.filter(r => r.getLocation().getId() === colony.locationId.getId()).length;
+        
+        const capacity = rocketLab.getBenefitValue();
+        if (existingRockets >= capacity) {
+             hudController.showError('Limit reached!');
+             return false;
+        }
+
+        // Exponential cost: Base * 1.5 ^ count
+        const scale = Math.pow(1.5, existingRockets);
+        
+        const costs = [
+            { id: 3, name: 'Fuel', amount: Math.floor(50 * scale) },
+            { id: 7, name: 'O2', amount: Math.floor(50 * scale) },
+            { id: 4, name: 'Computer', amount: Math.floor(10 * scale) },
+            { id: 5, name: 'Circuit Board', amount: Math.floor(20 * scale) }
+        ];
+
+        // Check resources
+        for (const cost of costs) {
+            const hasItem = colony.getItemPositions().find(i => i.good.getId() === cost.id);
+            if (!hasItem || hasItem.quantity < cost.amount) {
+                hudController.showError(`Not enough ${cost.name}!`);
+                return false;
+            }
+        }
+
+        // Deduct resources
+        for (const cost of costs) {
+            colony.reduceItemQuantity(cost.id, cost.amount);
+        }
+
+        // Create Rocket
+        const rocketName = `Rocket ${gameManager.getSession().rockets.length + 1}`;
+        const newRocket = new Rocket(
+            `rkt-${Date.now()}`,
+            rocketName,
+            60, 
+            colony.locationId, 
+            1
+        );
+        gameManager.getSession().addRocket(newRocket);
+
+        hudController.showSuccess('Rocket built!');
+        updateUI();
+        return true;
+    });
+
+    // Handle exploration missions
+    modalManager.onStartExploration((rocket, targetType) => {
+        const company = gameManager.getSession().company;
+        const oldMoney = company.getMoney();
+
+        const result = gameManager.startExploration(rocket, targetType);
+        if (!result.ok) {
+            hudController.showError(result.message ?? 'Exploration failed');
+            return false;
+        }
+
+        hudController.animateMoneyChange(oldMoney, company.getMoney());
+        hudController.showSuccess('Exploration launched!');
+        updateUI();
+        return true;
+    });
+
+    // Handle travel between colonies
+    modalManager.onStartTravel((rocket, targetType) => {
+        const success = gameManager.startTravel(rocket, targetType);
+        if (!success) {
+            hudController.showError('Travel failed');
+            return false;
+        }
+
+        hudController.showSuccess('Travel started!');
+        updateUI();
+        return true;
+    });
 }
 
 
@@ -175,11 +291,15 @@ function updateUI(): void {
 function updateUIIncremental(): void {
     const session = gameManager.getSession();
 
-    // Only update HUD money counter incrementally
+    // Only update HUD money counter and Sol display incrementally
     hudController.updateMoneyDisplay(session.company.getMoney());
+    hudController.updateSolDisplay(session.getSolData());
 
     // Update view content incrementally if the view supports it
     navigationController.updateViewIncremental(session);
+
+    // Update open modals if they need refreshing (e.g., rocket modal while traveling)
+    modalManager.updateOpenModalsIncremental(session);
 }
 
 /**

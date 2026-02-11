@@ -1,7 +1,7 @@
 import { StorageHolder } from "./storage";
 import { LevelSystem, type LevelProperty } from "./level";
 import type { SpaceLocation } from "./location";
-import { SpaceLocation as SpaceLocationClass } from "./location";
+import { getProductionModifierForLocation, SpaceLocation as SpaceLocationClass } from "./location";
 import { ItemPosition, Good } from "./good";
 import { GoodsRegistry } from "./goodsRegistry";
 
@@ -89,7 +89,7 @@ class InfrastructureModule extends Module {
             case InfrastructureType.ROCKET_LAB:
                 return Math.floor(lvl / 10)+1; // Rockets allowed
             case InfrastructureType.STOREROOM:
-                return this.infrastructureId * Math.pow(1.09, (level ?? this.getLevel()) - 1); // Storage capacity
+                return 100 * Math.pow(1.09, (level ?? this.getLevel()) - 1); // Storage capacity
             default:
                 return 0;
         }
@@ -141,7 +141,7 @@ class ProductionModule extends Module {
     constructor(goodId: number, quantityPerSol: number, initialLevel: number = 1) {
         super(ModuleType.PRODUCTION, initialLevel);
         this.goodId = goodId;
-        this.initialQuantityPerSol = quantityPerSol;
+        this.initialQuantityPerSol = quantityPerSol * (GoodsRegistry.get(goodId)?.baseProductionPerSol ?? 1);
     }
 
     public getWorkersNeeded(level?: number): number {
@@ -204,8 +204,20 @@ class Colony extends StorageHolder {
         return;
     }
 
-    getProductionMultiplier( ): number {
-        return 1*Math.pow(1.02, this.getLevel() - 1);
+    getProductionMultiplier(): number {
+        return getProductionModifierForLocation(this.locationId.getType()) * Math.pow(1.02, this.getLevel() - 1);
+    }
+
+    override getCapacity(lvl?: number): number {
+        // Get base capacity from the colony level
+        const baseCapacity = super.getCapacity(lvl);
+        
+        // Add capacity from all STOREROOM infrastructure modules
+        const storeroomBonus = this.getInfrastructureModules()
+            .filter(module => module.infrastructureId === InfrastructureType.STOREROOM)
+            .reduce((total, module) => total + module.getBenefitValue(), 0);
+        
+        return Math.floor(baseCapacity + storeroomBonus);
     }
 
     addColonyModule(module: Module): boolean {

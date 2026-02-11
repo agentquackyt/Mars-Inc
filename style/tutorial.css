@@ -1,0 +1,76 @@
+
+/* Tutorial Modal */
+.tutorial-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;
+    max-width: 90vw;
+    background: var(--ui-bg-panel);
+    border: 1px solid var(--ui-border);
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    z-index: 11000; /* Higher than normal modals */
+    display: flex;
+    flex-direction: column;
+}
+
+.tutorial-container {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.tutorial-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--ui-border);
+    padding-bottom: 10px;
+}
+
+.tutorial-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: var(--text-primary);
+}
+
+.tutorial-step-indicator {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.tutorial-content {
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
+.tutorial-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+/* Highlight Effect */
+.tutorial-highlight {
+    position: relative;
+    z-index: 10001; /* Above the overlay if we want it clickable, or just visual */
+    box-shadow: 0 0 0 4px var(--action-secondary), 0 0 20px rgba(31, 111, 235, 0.5);
+    border-radius: 4px;
+    animation: pulse-highlight 2s infinite;
+}
+
+@keyframes pulse-highlight {
+    0% {
+        box-shadow: 0 0 0 2px var(--action-secondary), 0 0 10px rgba(31, 111, 235, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 0 6px var(--action-secondary), 0 0 30px rgba(31, 111, 235, 0.6);
+    }
+    100% {
+        box-shadow: 0 0 0 2px var(--action-secondary), 0 0 10px rgba(31, 111, 235, 0.3);
+    }
+}

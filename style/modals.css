@@ -5,9 +5,9 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: var(--overlay-bg);
     backdrop-filter: blur(2px);
-    z-index: var(--overlay-z-index, 999);
+    z-index: var(--z-overlay);
 }
 
 .modal-overlay.hidden {
@@ -17,43 +17,47 @@
 .modal {
     position: fixed;
     top: 50%;
-    left: 1rem;
-    right: 1rem;
+    left: var(--spacing-lg);
+    right: var(--spacing-lg);
     transform: translateY(-50%);
     background: var(--ui-bg-dark-bg);
-    border: 4px solid var(--ui-bg-dark);
-    border-bottom-width: 7px;
-    border-radius: 10px;
+    border: var(--border-width-lg) solid var(--ui-bg-dark);
+    border-bottom-width: var(--border-width-2xl);
+    border-radius: var(--radius-2xl);
     box-shadow: var(--shadow-card);
-    padding: .5rem .9rem;
-    z-index: 1000;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    z-index: var(--z-modal);
     max-height: 90dvh;
     display: flex;
     flex-direction: column;
 }
 
 .modal.notification-view {
-    z-index: 1010;
+    z-index: var(--z-modal-top);
 }
 
 .modal.rocket-view {
-    z-index: 1005;
+    z-index: var(--z-modal-raised);
 }
 
 .modal.module-view {
-    z-index: 1005;
+    z-index: var(--z-modal-raised);
 }
 
 .modal.build-module-view {
-    z-index: 1005;
+    z-index: var(--z-modal-raised);
 }
 
 .modal.colony-view {
-    z-index: 1000;
+    z-index: var(--z-modal);
 }
 
 .modal.cargo-load-view {
-    z-index: 1005;
+    z-index: var(--z-modal-raised);
+}
+
+.modal.rocket-fleet-view {
+    z-index: var(--z-modal-raised);
 }
 
 .view-hotbar .btn:hover {
@@ -62,36 +66,36 @@
 
 .view-hotbar {
     display: flex;
-    gap: 1rem;
+    gap: var(--gap-lg);
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
 }
 
 .view-hotbar-title {
-    font-size: 20px;
+    font-size: var(--font-size-20);
     font-weight: 600;
 }
 
 .view-hotbar>.btn-icon {
-    width: 35px;
+    width: var(--font-size-35);
 }
 
 .view-content {
-    margin-top: 1rem;
+    margin-top: var(--spacing-lg);
     display: flex;
     flex-direction: column;
-    gap: .5rem;
+    gap: var(--gap-sm);
     flex: 1 1 auto;
     overflow-y: auto;
     min-height: 0;
 }
 
 .modal-actions {
-    margin-top: 1rem;
+    margin-top: var(--spacing-lg);
     display: flex;
     flex-direction: column;
-    gap: .5rem;
+    gap: var(--gap-sm);
     flex-shrink: 0;
 }
 
@@ -99,10 +103,10 @@
 .cargo-header {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 2px solid var(--ui-bg-dark);
-    margin-bottom: 0.75rem;
+    gap: var(--gap-xs);
+    padding-bottom: var(--spacing-md);
+    border-bottom: var(--border-width-sm) solid var(--ui-bg-dark);
+    margin-bottom: var(--spacing-md);
 }
 
 .cargo-header p {
@@ -112,24 +116,24 @@
 .cargo-goods-list {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
+    gap: var(--gap-md);
+    margin-bottom: var(--spacing-lg);
     max-height: 400px;
     overflow-y: auto;
 }
 
 .cargo-good-card {
     background: var(--ui-bg-dark);
-    border-radius: 8px;
-    padding: 0.75rem;
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-md);
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--gap-sm);
 }
 
 .cargo-good-card.cargo-unload {
     background: var(--ui-bg-dark-bg);
-    border-left: 3px solid var(--mars-rust);
+    border-left: var(--border-width-md) solid var(--mars-rust);
 }
 
 .cargo-good-card.cargo-merged {
@@ -138,8 +142,8 @@
 
 .cargo-quantities {
     display: flex;
-    gap: 1rem;
-    margin-top: 0.25rem;
+    gap: var(--gap-lg);
+    margin-top: var(--gap-xs);
 }
 
 .cargo-quantities p {
@@ -148,30 +152,30 @@
 
 .cargo-controls-merged {
     display: flex;
-    gap: 1rem;
+    gap: var(--gap-lg);
     flex-wrap: wrap;
 }
 
 .cargo-control-section {
     display: flex;
-    gap: 0.5rem;
+    gap: var(--gap-sm);
     flex-wrap: wrap;
 }
 
 .cargo-good-info h4 {
-    margin: 0 0 0.25rem 0;
-    font-size: 16px;
+    margin: 0 0 var(--gap-xs) 0;
+    font-size: var(--font-size-16);
 }
 
 .cargo-good-info .text-secondary {
     margin: 0;
-    font-size: 14px;
+    font-size: var(--font-size-14);
     color: var(--text-secondary);
 }
 
 .cargo-controls {
     display: flex;
-    gap: 0.5rem;
+    gap: var(--gap-sm);
     flex-wrap: wrap;
 }
 
@@ -182,10 +186,10 @@
 
 .rocket-actions {
     display: flex;
-    gap: 0.5rem;
+    gap: var(--gap-sm);
     flex-wrap: wrap;
 }
 /* Section Title with Spacing */
 .section-title-spaced {
-    margin-top: 20px;
+    margin-top: var(--spacing-4xl);
 }

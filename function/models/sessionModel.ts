@@ -1,11 +1,10 @@
 import { Rocket } from "./storage";
 import { Company } from "./company";
 import { GoodsRegistry } from "./goodsRegistry";
-import { SpaceLocation } from "./location";
+import { LocationType, SpaceLocation } from "./location";
 
 const config = {
-    minutesPerSol: 0.5,
-    minutesPerDay: 9
+    minutesPerSol: 0.5
 }
 
 class GameSession {
@@ -13,6 +12,14 @@ class GameSession {
     playerName: string;
     company: Company;
     rockets: Rocket[];
+    totalSolsPassed: number = 0;
+    currentSol: number = 1;
+    currentSolProgress: number = 0; // 0 to 1
+    tutorialActive: boolean = false;
+    tutorialStep: number = 0;
+    tutorialCompleted: boolean = false;
+
+    explorationMissions: ExplorationMission[] = [];
     
     constructor(sessionId: string, playerName: string, company: Company) {
         this.sessionId = sessionId;
@@ -25,12 +32,37 @@ class GameSession {
         this.rockets.push(rocket);
     }
 
+    updateSolProgress(progress: number) {
+        this.currentSolProgress = progress;
+    }
+
+    incrementSol() {
+        this.totalSolsPassed++;
+        this.currentSol++;
+        this.currentSolProgress = 0;
+        
+    }
+
+    getSolData(): { currentSol: number; currentSolProgress: number } {
+        return {
+            currentSol: this.currentSol,
+            currentSolProgress: this.currentSolProgress
+        };
+    }
+
     toData() {
         return {
             sessionId: this.sessionId,
             playerName: this.playerName,
             company: this.company.toData(),
-            rockets: this.rockets.map(rocket => rocket.toData())
+            rockets: this.rockets.map(rocket => rocket.toData()),
+            totalSolsPassed: this.totalSolsPassed,
+            currentSol: this.currentSol,
+            currentSolProgress: this.currentSolProgress,
+            tutorialActive: this.tutorialActive,
+            tutorialStep: this.tutorialStep,
+            tutorialCompleted: this.tutorialCompleted,
+            explorationMissions: this.explorationMissions
         };
     }
 
@@ -42,8 +74,27 @@ class GameSession {
         company.colonies.forEach(col => locations.set(col.locationId.getId(), col.locationId));
 
         session.rockets = (data.rockets ?? []).map((rocketData: any) => Rocket.fromData(rocketData, locations, GoodsRegistry));
+        session.totalSolsPassed = data.totalSolsPassed ?? 0;
+        session.currentSol = data.currentSol ?? 1;
+        session.currentSolProgress = data.currentSolProgress ?? 0;
+        
+        // Restore tutorial state
+        session.tutorialActive = data.tutorialActive ?? false;
+        session.tutorialStep = data.tutorialStep ?? 0;
+        session.tutorialCompleted = data.tutorialCompleted ?? false;
+
+        session.explorationMissions = (data.explorationMissions ?? []).map((m: any) => ({
+            rocketId: String(m.rocketId),
+            targetType: m.targetType as LocationType
+        }));
+
         return session;
     }
 }
+
+type ExplorationMission = {
+    rocketId: string;
+    targetType: LocationType;
+};
 
 export { GameSession, config };

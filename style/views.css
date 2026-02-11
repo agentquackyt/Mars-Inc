@@ -1,9 +1,10 @@
 /* Views and Navigation Styles */
 
 #app {
-    padding: 1rem;
-    padding-bottom: 2rem;
-    height: calc(100vh - 140px); /* Account for header and footer */
+    padding: var(--spacing-lg);
+    padding-bottom: var(--spacing-3xl);
+    height: calc(100vh - 200px);
+    /* Account for header and footer */
     overflow-y: auto;
     overflow-x: hidden;
 }
@@ -11,7 +12,7 @@
 /* Navigation Bar - Active state */
 aside .btn-icon.active {
     background: var(--mars-rust);
-    color: white;
+    color: var(--color-white);
 }
 
 /* Common View Styles */
@@ -28,6 +29,7 @@ aside .btn-icon.active {
         opacity: 0;
         transform: translateY(10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -37,30 +39,30 @@ aside .btn-icon.active {
 /* Card Styles */
 .card {
     background: var(--mars-soil);
-    border-radius: 12px;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    border: 4px solid var(--mars-rust);
-    border-bottom-width: 6px;
+    border-radius: var(--radius-3xl);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    border: var(--border-width-lg) solid var(--mars-rust);
+    border-bottom-width: var(--border-width-xl);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* Company Card */
 .company-card {
-    background:  var(--ui-bg-dark-bg);
-    border: 4px solid var(--ui-bg-dark);
-    border-bottom-width: 6px;
+    background: var(--ui-bg-dark-bg);
+    border: var(--border-width-lg) solid var(--ui-bg-dark);
+    border-bottom-width: var(--border-width-xl);
 }
 
 .company-stats {
     display: flex;
-    gap: 1rem;
-    margin-top: 0.5rem;
+    gap: var(--gap-lg);
+    margin-top: var(--spacing-sm);
 }
 
 .stat-label {
     color: var(--mars-text);
-    font-size: 0.9rem;
+    font-size: var(--font-size-lg);
 }
 
 .stat-value {
@@ -72,23 +74,23 @@ aside .btn-icon.active {
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1rem;
-    margin: 1rem 0;
+    gap: var(--gap-lg);
+    margin: var(--spacing-lg) 0;
 }
 
 .stat-card {
     background: var(--mars-soil);
-    border-radius: 12px;
-    padding: 1rem;
+    border-radius: var(--radius-3xl);
+    padding: var(--spacing-lg);
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    border: 4px solid var(--mars-rust);
-    border-bottom-width: 6px;
+    gap: var(--gap-md);
+    border: var(--border-width-lg) solid var(--mars-rust);
+    border-bottom-width: var(--border-width-xl);
 }
 
 .stat-card .stat-icon {
-    font-size: 2rem;
+    font-size: var(--font-size-6xl);
     color: var(--mars-text);
 }
 
@@ -98,12 +100,12 @@ aside .btn-icon.active {
 }
 
 .stat-card .stat-label {
-    font-size: 0.85rem;
+    font-size: var(--font-size-md);
     color: var(--mars-text);
 }
 
 .stat-card .stat-value {
-    font-size: 1.25rem;
+    font-size: var(--font-size-4xl);
     font-weight: 600;
     color: var(--text-primary);
 }
@@ -112,16 +114,16 @@ aside .btn-icon.active {
 .locations-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1rem;
+    gap: var(--gap-lg);
 }
 
 .location-card {
     background: var(--mars-soil);
-    border-radius: 12px;
-    padding: 1.5rem;
+    border-radius: var(--radius-3xl);
+    padding: var(--spacing-2xl);
     text-align: center;
-    border: 4px solid var(--mars-rust);
-    border-bottom-width: 6px;
+    border: var(--border-width-lg) solid var(--mars-rust);
+    border-bottom-width: var(--border-width-xl);
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -132,27 +134,27 @@ aside .btn-icon.active {
 }
 
 .location-icon {
-    font-size: 3rem;
+    font-size: var(--font-size-8xl);
     color: var(--mars-text);
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--spacing-sm);
 }
 
 /* Rockets View */
 .rockets-list {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--gap-lg);
 }
 
 .rocket-card {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    padding: 1rem;
+    gap: var(--gap-lg);
+    padding: var(--spacing-lg);
 }
 
 .rocket-icon {
-    font-size: 2.5rem;
+    font-size: var(--font-size-7xl);
     color: var(--mars-text);
 }
 
@@ -161,18 +163,18 @@ aside .btn-icon.active {
 }
 
 .rocket-info h3 {
-    margin-bottom: 0.25rem;
+    margin-bottom: var(--gap-xs);
     color: var(--text-primary);
 }
 
 .rocket-status {
-    font-size: 0.9rem;
+    font-size: var(--font-size-lg);
     color: var(--mars-text);
-    margin-bottom: 0.25rem;
+    margin-bottom: var(--gap-xs);
 }
 
 .rocket-level {
-    font-size: 0.85rem;
+    font-size: var(--font-size-md);
     color: var(--action-upgrade);
 }
 
@@ -180,18 +182,18 @@ aside .btn-icon.active {
 .colonies-list {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--gap-lg);
 }
 
 .colony-card {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    padding: 1rem;
+    gap: var(--gap-lg);
+    padding: var(--spacing-lg);
 }
 
 .colony-icon {
-    font-size: 2.5rem;
+    font-size: var(--font-size-7xl);
     color: var(--mars-text);
 }
 
@@ -200,34 +202,34 @@ aside .btn-icon.active {
 }
 
 .colony-info h3 {
-    margin-bottom: 0.25rem;
+    margin-bottom: var(--gap-xs);
     color: var(--text-primary);
 }
 
 .colony-location,
 .colony-storage,
 .colony-level {
-    font-size: 0.85rem;
+    font-size: var(--font-size-md);
     color: var(--mars-text);
-    margin-bottom: 0.25rem;
+    margin-bottom: var(--gap-xs);
 }
 
 /* Warehouses View */
 .warehouses-list {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--gap-lg);
 }
 
 .warehouse-card {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    padding: 1rem;
+    gap: var(--gap-lg);
+    padding: var(--spacing-lg);
 }
 
 .warehouse-icon {
-    font-size: 2.5rem;
+    font-size: var(--font-size-7xl);
     color: var(--mars-text);
 }
 
@@ -236,40 +238,40 @@ aside .btn-icon.active {
 }
 
 .warehouse-info h3 {
-    margin-bottom: 0.25rem;
+    margin-bottom: var(--gap-xs);
     color: var(--text-primary);
 }
 
 .warehouse-location,
 .warehouse-storage,
 .warehouse-level {
-    font-size: 0.85rem;
+    font-size: var(--font-size-md);
     color: var(--mars-text);
-    margin-bottom: 0.25rem;
+    margin-bottom: var(--gap-xs);
 }
 
 /* Market View */
 .market-view {
     width: 100%;
-    margin-bottom: 2rem;
+    margin-bottom: var(--spacing-3xl);
 }
 
 .market-description {
     color: var(--mars-text);
-    margin-bottom: 1.5rem;
-    font-size: 0.95rem;
+    margin-bottom: var(--spacing-2xl);
+    font-size: var(--font-size-xl);
 }
 
 .market-money {
     background: var(--mars-soil);
-    padding: 1rem;
-    border-radius: 12px;
-    border: 3px solid var(--mars-rust);
-    margin-bottom: 2rem;
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-3xl);
+    border: var(--border-width-md) solid var(--mars-rust);
+    margin-bottom: var(--spacing-3xl);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
+    gap: var(--gap-sm);
 }
 
 .money-label {
@@ -279,158 +281,169 @@ aside .btn-icon.active {
 
 .money-value {
     color: var(--text-primary);
-    font-size: 1.5rem;
+    font-size: var(--font-size-5xl);
     font-weight: 700;
 }
 
 .market-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: .5rem;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: var(--gap-md);
 }
 
 .market-card {
     display: flex;
     flex-direction: column;
-    padding: .75rem;
-    gap: .5rem;
+    padding: 0;
+    gap: 0;
+    overflow: hidden;
+    position: relative;
+    border-radius: var(--radius-3xl);
+}
+
+.market-header {
+    background: var(--ui-bg-panel-semi);
+    /* Semi-transparent panel bg */
+    padding: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--gap-md);
+    border-bottom: var(--border-width-sm) solid var(--mars-rust);
+}
+
+.market-icon {
+    font-size: var(--font-size-6xl);
+    color: var(--action-expensive);
+    font-variation-settings:
+        'FILL' 1,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 40;
+}
+
+.market-title-group {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
 }
 
 .market-good-name {
     margin: 0;
     color: var(--text-primary);
-    font-size: 1.25rem;
+    font-size: var(--font-size-3xl);
+    line-height: 1.2;
 }
 
 .market-good-category {
     color: var(--mars-text);
-    font-size: 0.85rem;
-    margin: -0.5rem 0 0 0;
-}
-
-.market-prices {
-    display: flex;
-    gap: .5rem;
-    justify-content: space-between;
-    padding: 0.75rem;
-    background: var(--mars-soil);
-    border-radius: 8px;
-}
-
-.market-price {
-    display: flex;
-    flex-direction: column;
-}
-
-.price-label {
-    color: var(--mars-text);
-    font-size: 0.75rem;
+    font-size: var(--font-size-sm);
     text-transform: uppercase;
-    font-weight: 600;
-}
-
-.price-value {
-    color: var(--text-primary);
-    font-size: 1.1rem;
-    font-weight: 700;
-}
-
-.market-inventory {
-    color: var(--mars-text);
-    font-size: 0.9rem;
-    text-align: center;
-    padding: 0.5rem;
-    background: var(--mars-soil);
-    border-radius: 6px;
+    letter-spacing: 0.5px;
     margin: 0;
 }
 
-.market-actions {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-    gap: 0.5rem;
+.market-inventory-badge {
+    background: var(--mars-rust);
+    color: var(--color-white);
+    font-size: var(--font-size-md);
+    font-weight: 700;
+    padding: var(--gap-xs) var(--gap-sm);
+    border-radius: var(--radius-lg);
+    min-width: 2rem;
+    text-align: center;
+    box-shadow: var(--shadow-toast);
 }
 
-.btn-buy,
-.btn-sell {
-    aspect-ratio: 1 / 1;
-    padding: 0.25rem;
-    font-size: 0.85rem;
+.market-prices-compact {
+    display: flex;
+    background: var(--overlay-darker);
+    padding: var(--spacing-sm) var(--spacing-md);
+    justify-content: space-between;
+    font-size: var(--font-size-md);
+    color: var(--mars-text);
+    border-bottom: var(--border-width-thin) solid var(--overlay-light);
+}
+
+.price-tag {
+    display: flex;
+    gap: var(--gap-xs);
+}
+
+.price-tag span {
+    color: var(--text-primary);
     font-weight: 600;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
 }
 
-.market-btn {
+.market-actions-compact {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--gap-sm);
+    padding: var(--spacing-md);
+}
+
+.btn-compact {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.25rem;
-    padding: 0.5rem !important;
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-xl);
+    cursor: pointer;
+    transition: all 0.2s;
+    border: var(--border-width-sm) solid transparent;
+    /* Placeholder for border */
+    border-bottom-width: var(--border-width-lg);
 }
 
-.market-btn-label {
-    font-size: 0.9rem;
-    font-weight: 600;
+.btn-compact-label {
+    font-size: var(--font-size-md);
+    font-weight: 700;
 }
 
-.market-btn-price {
-    font-size: 0.7rem;
-    font-weight: 500;
+.btn-compact-sub {
+    font-size: var(--font-size-xs);
     opacity: 0.9;
 }
 
-.btn-buy {
+.btn-buy.btn-compact {
     background: var(--action-upgrade);
-    border: 3px solid var(--action-upgrade-border);
-    border-bottom-width: 5px;
+    border-color: var(--action-upgrade-border);
     color: var(--text-primary);
 }
 
-.btn-buy:hover {
-    background: var(--action-upgrade-border);
-    transform: translateY(-2px);
-}
-
-.btn-buy:active {
-    border-bottom-width: 2px;
-    transform: translateY(0);
-}
-
-.btn-sell {
-    background: #c77b3a;
-    border: 3px solid #a0622e;
-    border-bottom-width: 5px;
+.btn-sell.btn-compact {
+    background: var(--action-sell);
+    border-color: var(--action-sell-border);
     color: var(--text-primary);
 }
 
-.btn-sell:hover:not(:disabled) {
-    background: #a0622e;
-    transform: translateY(-2px);
-}
-
-.btn-sell:active:not(:disabled) {
-    border-bottom-width: 2px;
-    transform: translateY(0);
-}
-
-.btn-sell:disabled {
+.btn-sell.btn-compact:disabled {
     opacity: 0.5;
-    cursor: not-allowed;
+    background: var(--disabled-bg);
+    border-color: var(--disabled-border);
+    pointer-events: none;
+}
+
+.btn-compact:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+}
+
+.btn-compact:active {
+    border-bottom-width: var(--border-width-sm);
+    transform: translateY(0);
 }
 
 /* Storage Section */
 .storage-section {
     width: 100%;
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 2px solid var(--mars-rust);
+    margin-top: var(--spacing-lg);
+    padding-top: var(--spacing-lg);
+    border-top: var(--border-width-sm) solid var(--mars-rust);
 }
 
 .storage-empty {
-    font-size: 0.85rem;
+    font-size: var(--font-size-md);
     color: var(--mars-text);
     font-style: italic;
 }
@@ -438,18 +451,18 @@ aside .btn-icon.active {
 .storage-items-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: var(--gap-sm);
 }
 
 .storage-item {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
+    gap: var(--gap-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
     background: var(--mars-soil);
-    border: 2px solid var(--mars-rust);
-    border-radius: 8px;
-    font-size: 0.85rem;
+    border: var(--border-width-sm) solid var(--mars-rust);
+    border-radius: var(--radius-xl);
+    font-size: var(--font-size-md);
 }
 
 .storage-item-name {
@@ -461,30 +474,30 @@ aside .btn-icon.active {
     color: var(--mars-text);
     font-weight: 500;
     background: var(--mars-rust);
-    padding: 0.125rem 0.5rem;
-    border-radius: 4px;
+    padding: 0.125rem var(--spacing-sm);
+    border-radius: var(--radius-sm);
 }
 
 /* Toast Notifications */
 .toast-container {
     position: fixed;
     top: 80px;
-    right: 1rem;
-    z-index: 9999;
+    right: var(--spacing-lg);
+    z-index: var(--z-toast);
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--gap-sm);
     pointer-events: none;
 }
 
 .toast {
     background: var(--mars-soil);
     color: var(--text-primary);
-    padding: 0.75rem 1.25rem;
-    border-radius: 12px;
+    padding: var(--spacing-md) var(--spacing-xl);
+    border-radius: var(--radius-3xl);
     box-shadow: var(--shadow-card);
-    border: 4px solid var(--mars-rust);
-    border-bottom-width: 6px;
+    border: var(--border-width-lg) solid var(--mars-rust);
+    border-bottom-width: var(--border-width-xl);
     transform: translateX(400px);
     opacity: 0;
     transition: all 0.3s ease;
@@ -498,24 +511,36 @@ aside .btn-icon.active {
 
 /* Small Button Variant */
 .btn-small {
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: var(--font-size-md);
     background: var(--action-upgrade);
-    border: 3px solid var(--action-upgrade-border);
-    border-bottom-width: 6px;
-    border-radius: 0.75rem;
+    border: var(--border-width-md) solid var(--action-upgrade-border);
+    border-bottom-width: var(--border-width-xl);
+    border-radius: var(--radius-btn);
     color: var(--text-primary);
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .btn-small:hover {
-    background: var(--action-upgrade-border);
+    background: var(--action-upgrade-hover);
 }
 
 .btn-small:active {
-    border-bottom-width: 2px;
+    border-bottom-width: var(--border-width-sm);
 }
+
+.btn-accent {
+    background: var(--action-secondary);
+    border: var(--border-width-md) solid var(--action-secondary-border);
+    border-bottom-width: var(--border-width-xl);
+    color: var(--action-secondary-text);
+}
+
+.btn-accent:hover {
+    background: var(--action-secondary-border);
+}
+
 
 /* Column Layout */
 .column {
@@ -525,11 +550,11 @@ aside .btn-icon.active {
 
 /* Activity Section */
 .activity-section {
-    margin-top: 2rem;
+    margin-top: var(--spacing-3xl);
 }
 
 .activity-section h3 {
-    margin-bottom: 1rem;
+    margin-bottom: var(--spacing-lg);
     color: var(--text-primary, #fff);
 }
 
@@ -538,13 +563,9 @@ aside .btn-icon.active {
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
     }
-    
+
     .locations-list {
         grid-template-columns: 1fr;
-    }
-    
-    #app {
-        padding: 0.5rem;
     }
 }
 
@@ -586,8 +607,8 @@ aside .btn-icon.active {
 }
 
 .planet-node__visual {
-    width: 80px;
-    height: 80px;
+    width: var(--size-card-sm);
+    height: var(--size-card-sm);
     background-image: var(--bg-image);
     background-size: cover;
     background-position: center;
@@ -596,11 +617,11 @@ aside .btn-icon.active {
 
 .planet-node__label {
     text-align: center;
-    margin-top: 0.5rem;
+    margin-top: var(--spacing-sm);
     color: var(--text-primary);
-    font-size: 0.875rem;
+    font-size: var(--font-size-base);
     font-weight: 600;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    text-shadow: var(--shadow-text);
 }
 
 /* Rocket Nodes */

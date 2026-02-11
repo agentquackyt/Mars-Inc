@@ -1,15 +1,17 @@
 import { ItemPosition, Good } from "./good";
 import { LocationType, SpaceLocation } from "./location";
 import { LevelSystem, type LevelProperty } from "./level";
+import { config } from "./sessionModel";
 
 type SpaceConnection = { from: LocationType, to: LocationType, travelTime: number, fuelCost: number };
 
 const SpaceConnections: SpaceConnection[] = [
-    {from: LocationType.EARTH, to: LocationType.MARS, travelTime: 60, fuelCost: 35},
-    {from: LocationType.EARTH, to: LocationType.MOON, travelTime: 15, fuelCost: 10},
-    {from: LocationType.MOON, to: LocationType.MARS, travelTime: 45, fuelCost: 27},
-    {from: LocationType.SPACE_STATION, to: LocationType.MARS, travelTime: 50, fuelCost: 30},
-    {from: LocationType.SPACE_STATION, to: LocationType.MOON, travelTime: 12, fuelCost: 5}
+    {from: LocationType.EARTH, to: LocationType.MARS, travelTime: 12, fuelCost: 100_000},
+    {from: LocationType.EARTH, to: LocationType.MOON, travelTime: 4, fuelCost: 30_000},
+    {from: LocationType.MOON, to: LocationType.MARS, travelTime: 7, fuelCost: 50_000},
+    {from: LocationType.SPACE_STATION, to: LocationType.MARS, travelTime: 10, fuelCost: 90_000},
+    {from: LocationType.SPACE_STATION, to: LocationType.MOON, travelTime: 3, fuelCost: 20_000},
+    {from: LocationType.EARTH, to: LocationType.SPACE_STATION, travelTime: 1, fuelCost: 500}
 ]
 
 abstract class StorageHolder extends LevelSystem {
@@ -89,6 +91,7 @@ class Rocket extends StorageHolder {
     private id: string;
     name: string;
     estimatedTravelTime: number; // in minutes
+    initialTravelTime: number; // total journey duration in minutes
     locationId: SpaceLocation;
     destinationId: SpaceLocation | null;
 
@@ -97,8 +100,13 @@ class Rocket extends StorageHolder {
         this.id = id;
         this.name = name;
         this.estimatedTravelTime = estimatedTravelTime;
+        this.initialTravelTime = 0;
         this.locationId = locationId;
         this.destinationId = null;
+    }
+
+    getId(): string {
+        return this.id;
     }
 
     onUpgrade(): void {}
@@ -124,7 +132,8 @@ class Rocket extends StorageHolder {
         // For now, only allow valid connections
         if (connection) {
             this.destinationId = destinationId;
-            this.estimatedTravelTime = connection.travelTime;
+            this.estimatedTravelTime = connection.travelTime * config.minutesPerSol;
+            this.initialTravelTime = this.estimatedTravelTime;
             return true;
         }
         return false;
@@ -143,6 +152,7 @@ class Rocket extends StorageHolder {
             this.locationId = this.destinationId;
             this.destinationId = null;
             this.estimatedTravelTime = 0;
+            this.initialTravelTime = 0;
         }
     }
 
@@ -151,6 +161,7 @@ class Rocket extends StorageHolder {
             id: this.id,
             name: this.name,
             estimatedTravelTime: this.estimatedTravelTime,
+            initialTravelTime: this.initialTravelTime,
             location: this.locationId.toData(),
             destination: this.destinationId ? this.destinationId.toData() : null,
             storage: this.toStorageData()
@@ -160,6 +171,7 @@ class Rocket extends StorageHolder {
     static fromData(data: any, locations: Map<string, SpaceLocation>, goodsRegistry: Map<number, Good>): Rocket {
         const location = locations.get(data.location.uuid) ?? SpaceLocation.fromData(data.location);
         const rocket = new Rocket(data.id, data.name, data.estimatedTravelTime, location, data.storage?.level ?? 1);
+        rocket.initialTravelTime = data.initialTravelTime ?? 0;
         const items = (data.storage?.items ?? []).map((item: any) => ItemPosition.fromData(item, goodsRegistry));
         rocket.setItems(items);
         if (data.destination) {

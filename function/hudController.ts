@@ -11,9 +11,13 @@ export class HUDController {
     private moneyCounter: HTMLElement | null;
     private settingsButton: HTMLButtonElement | null;
     private companyNameDisplay: HTMLElement | null;
+    private solCounterDisplay: HTMLHeadingElement | null;
+    private solProgressFill: HTMLElement | null;
 
     constructor() {
         this.moneyCounter = GUI.query<HTMLElement>('.money-counter');
+        this.solCounterDisplay = GUI.query<HTMLHeadingElement>('.sol-counter');
+        this.solProgressFill = GUI.query<HTMLElement>('.sol-progress-fill');
         this.companyNameDisplay = GUI.query<HTMLElement>('header h2');
         
         // Setup settings button
@@ -48,6 +52,7 @@ export class HUDController {
     update(session: GameSession): void {
         this.updateMoneyDisplay(session.company.getMoney());
         this.updateCompanyName(session.company.name);
+        this.updateSolDisplay(session.getSolData());
     }
 
     /**
@@ -57,6 +62,15 @@ export class HUDController {
         if (this.moneyCounter) {
             const formattedMoney = GUI.formatMoney(amount);
             GUI.setText(this.moneyCounter, formattedMoney);
+        }
+    }
+
+    updateSolDisplay(solData: { currentSol: number; currentSolProgress: number }): void {
+        if (this.solCounterDisplay) {
+            this.solCounterDisplay.textContent = `Sol ${solData.currentSol}`;
+        }
+        if (this.solProgressFill) {
+            this.solProgressFill.style.width = `${Math.min(100, Math.max(0, solData.currentSolProgress * 100))}%`;
         }
     }
 
