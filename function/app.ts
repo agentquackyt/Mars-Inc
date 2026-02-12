@@ -1,9 +1,11 @@
 import { GameSession, config } from "./models/sessionModel";
 import { Company, Colony, ProductionModule } from "./models/company";
-import { Rocket, SpaceConnections } from "./models/storage";
+import { Rocket, SpaceConnections, SellRouteState, findSpaceConnection } from "./models/storage";
 import { SpaceLocation, LocationType } from "./models/location";
 import { Good, Category, ItemPosition } from "./models/good";
 import { GoodsRegistry } from "./models/goodsRegistry";
+import * as GUI from './gui';
+import { hudController } from './hudController';
 
 
 
@@ -19,6 +21,9 @@ export class GameManager {
         this.lastRocketUpdateTime = Date.now();
         this.lastSaveTime = Date.now();
         this.session = initialSession ?? this.createNewSession("Mars Inc.");
+
+        // Expose gameManager on window for UI access
+        (window as any).gameManager = this;
     }
 
     createNewSession(playerName: string): GameSession {
@@ -27,11 +32,13 @@ export class GameManager {
         
         // Initial setup
         const earth = new SpaceLocation(LocationType.EARTH, "Earth HQ", "loc-earth");
-        const mars = new SpaceLocation(LocationType.MARS, "Ares Base", "loc-mars");
 
         const hq = new Colony("col-1", "Earth HQ", earth);
         // Add some basic goods production for testing
-        hq.addColonyModule(new ProductionModule(1, 1)); // Food
+        let food = GoodsRegistry.get(1);
+        if (food) {
+            hq.addColonyModule(new ProductionModule(food.getId(), 3));
+        }
         company.addColony(hq);
         return session;
     }
@@ -133,6 +140,11 @@ export class GameManager {
                 if (rocket.estimatedTravelTime <= 0) {
                     rocket.completeTravel();
                     console.log(`Rocket ${rocket.name} arrived at ${rocket.getLocation().name}`);
+
+                    // Handle sell route automation BEFORE exploration missions
+                    if (rocket.sellRoute) {
+                        this.handleSellRouteAutomation(rocket);
+                    }
 
                     const missionIndex = this.session.explorationMissions.findIndex(m => m.rocketId === rocket.getId());
                     if (missionIndex >= 0) {
@@ -276,7 +288,7 @@ export class GameManager {
         }
 
         const fromType = rocket.getLocation().getType();
-        const connection = SpaceConnections.find(conn => conn.from === fromType && conn.to === targetType);
+        const connection = findSpaceConnection(fromType, targetType);
         if (!connection) {
             console.log('No valid route to target.');
             return false;
@@ -364,11 +376,195 @@ export class GameManager {
          // Check if we already have it in session via colonies
          const col = this.session.company.colonies.find(c => c.locationId.getType() === type);
          if (col) return col.locationId;
-         
+
          // Else create/return default
          // Note: In a real app we'd persist these properly so ID stays same.
          // For now, stable IDs based on type string.
          return new SpaceLocation(type, type, `loc-${type}`);
+    }
+
+    // Sell Route Automation
+    handleSellRouteAutomation(rocket: Rocket): boolean {
+        if (!rocket.sellRoute) return false;
+
+        const currentLocation = rocket.getLocation();
+
+        // Check if we just arrived somewhere
+        if (rocket.sellRouteState === SellRouteState.TRAVELING_TO_EARTH) {
+            if (currentLocation.getType() === LocationType.EARTH) {
+                return this.executeSellAtEarth(rocket);
+            }
+        } else if (rocket.sellRouteState === SellRouteState.TRAVELING_TO_ORIGIN) {
+            const originColony = this.getColonyById(rocket.sellRouteOriginId);
+            if (originColony && currentLocation.getId() === originColony.locationId.getId()) {
+                return this.executeReloadAtOrigin(rocket);
+            }
+        } else if (rocket.sellRouteState === SellRouteState.IDLE) {
+            // Start new cycle
+            return this.startSellRouteFromOrigin(rocket);
+        }
+
+        return false;
+    }
+
+    private startSellRouteFromOrigin(rocket: Rocket): boolean {
+        const originColony = this.getColonyById(rocket.sellRouteOriginId);
+        if (!originColony) {
+            rocket.sellRoute = false;
+            hudController.showToast(`${rocket.name}: Origin colony not found, sell route stopped`, 3000);
+            return false;
+        }
+
+        // Load all available goods (excluding fuel)
+        this.loadAllGoods(rocket, originColony);
+
+        // Find connection to Earth
+        const connection = findSpaceConnection(originColony.locationId.getType(), LocationType.EARTH);
+        if (!connection) {
+            rocket.sellRoute = false;
+            hudController.showToast(`${rocket.name}: No route to Earth, sell route stopped`, 3000);
+            return false;
+        }
+
+        const fuelNeeded = connection.fuelCost;
+
+        // Check fuel availability and auto-buy if needed
+        const fuelItem = originColony.getItemPositions().find(i => i.good.getId() === 3);
+        const availableFuel = fuelItem ? fuelItem.quantity : 0;
+
+        if (availableFuel < fuelNeeded) {
+            const fuelToBuy = fuelNeeded - availableFuel;
+            const fuelGood = GoodsRegistry.get(3)!;
+
+            // If not at Earth, multiply price by 10x
+            const priceMultiplier = originColony.locationId.getType() === LocationType.EARTH ? 1 : 10;
+            const cost = fuelToBuy * fuelGood.marketBuyPrice * priceMultiplier;
+
+            if (!this.session.company.deductMoney(cost)) {
+                hudController.showToast(`${rocket.name}: Not enough credits to buy fuel (need ${GUI.formatMoney(cost)})`, 3000);
+                return false;
+            }
+
+            // Add fuel to origin colony (ignore capacity limits)
+            const existingFuel = originColony.getItemPositions().find(i => i.good.getId() === 3);
+            if (existingFuel) {
+                existingFuel.quantity += fuelToBuy;
+            } else {
+                originColony.getItemPositions().push(new ItemPosition(fuelGood, fuelToBuy));
+            }
+        }
+
+        // Deduct fuel and start travel
+        originColony.reduceItemQuantity(3, fuelNeeded);
+        const earthLocation = this.session.company.colonies.find(c =>
+            c.locationId.getType() === LocationType.EARTH
+        )!.locationId;
+
+        rocket.startTravel(earthLocation);
+        rocket.sellRouteState = SellRouteState.TRAVELING_TO_EARTH;
+
+        return true;
+    }
+
+    private executeSellAtEarth(rocket: Rocket): boolean {
+        const earthHQ = this.session.company.colonies.find(c =>
+            c.locationId.getType() === LocationType.EARTH
+        )!;
+
+        // Calculate total value and sell all goods
+        let totalEarned = 0;
+        const itemsToSell: Array<{ goodId: number, quantity: number }> = [];
+
+        rocket.getItemPositions().forEach(item => {
+            const quantity = Math.floor(item.quantity);
+            const price = item.good.marketSellPrice * quantity;
+            totalEarned += price;
+            itemsToSell.push({ goodId: item.good.getId(), quantity });
+        });
+
+        // Remove goods and add money
+        itemsToSell.forEach(({ goodId, quantity }) => {
+            rocket.reduceItemQuantity(goodId, quantity);
+        });
+        this.session.company.addMoney(totalEarned);
+
+        // Show notification
+        hudController.showToast(`${rocket.name} earned ${GUI.formatMoney(totalEarned)}!`, 3000);
+
+        // Prepare return trip
+        const originColony = this.getColonyById(rocket.sellRouteOriginId);
+        if (!originColony) {
+            rocket.sellRoute = false;
+            return false;
+        }
+
+        const connection = findSpaceConnection(LocationType.EARTH, originColony.locationId.getType());
+        if (!connection) {
+            rocket.sellRoute = false;
+            return false;
+        }
+
+        const fuelNeeded = connection.fuelCost;
+        const earthFuel = earthHQ.getItemPositions().find(i => i.good.getId() === 3);
+        const availableFuel = earthFuel ? earthFuel.quantity : 0;
+
+        // Auto-buy fuel if needed (ignore storage limits)
+        if (availableFuel < fuelNeeded) {
+            const fuelToBuy = fuelNeeded - availableFuel;
+            const fuelGood = GoodsRegistry.get(3)!;
+            const cost = fuelToBuy * fuelGood.marketBuyPrice;
+
+            if (!this.session.company.deductMoney(cost)) {
+                hudController.showToast(`${rocket.name}: Not enough credits to buy fuel for return trip`, 3000);
+                rocket.sellRoute = false;
+                return false;
+            }
+
+            // Force add fuel (ignore capacity limits)
+            const existingFuel = earthHQ.getItemPositions().find(i => i.good.getId() === 3);
+            if (existingFuel) {
+                existingFuel.quantity += fuelToBuy;
+            } else {
+                earthHQ.getItemPositions().push(new ItemPosition(fuelGood, fuelToBuy));
+            }
+        }
+
+        // Deduct fuel and start return
+        earthHQ.reduceItemQuantity(3, fuelNeeded);
+        rocket.startTravel(originColony.locationId);
+        rocket.sellRouteState = SellRouteState.TRAVELING_TO_ORIGIN;
+
+        return true;
+    }
+
+    private executeReloadAtOrigin(rocket: Rocket): boolean {
+        // Restart the cycle
+        rocket.sellRouteState = SellRouteState.IDLE;
+        return this.startSellRouteFromOrigin(rocket);
+    }
+
+    private loadAllGoods(rocket: Rocket, source: Colony): void {
+        const remainingCapacity = rocket.getCapacity() - rocket.getTotalQuantity();
+        let loaded = 0;
+
+        // Load all goods except fuel
+        const items = source.getItemPositions().filter(i => i.good.getId() !== 3);
+
+        for (const item of items) {
+            if (loaded >= remainingCapacity) break;
+
+            const amountToLoad = Math.min(item.quantity, remainingCapacity - loaded);
+
+            if (rocket.addItemPosition(new ItemPosition(item.good, amountToLoad))) {
+                source.reduceItemQuantity(item.good.getId(), amountToLoad);
+                loaded += amountToLoad;
+            }
+        }
+    }
+
+    private getColonyById(colonyId: string | null): Colony | null {
+        if (!colonyId) return null;
+        return this.session.company.colonies.find(c => c.colonyId === colonyId) || null;
     }
 
     getSession(): GameSession {

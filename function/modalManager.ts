@@ -813,7 +813,7 @@ class ModalManager implements ModalController {
         const upgradeBtn = GUI.upgradeButton('Upgrade', upgradeCost, 'sell', () => {
             console.log('[ModalManager] Upgrade button clicked for', modalType);
             this.triggerUpgrade(modalType, entity);
-        });
+        }, true); // Enable long-press for level modal upgrades
 
         // Disable button if at max level
         if (entity.isMaxLevel()) {
@@ -1249,116 +1249,6 @@ class ModalManager implements ModalController {
         actions.appendChild(closeBtn);
     }
 
-    private createLoadCard(
-        item: ItemPosition,
-        rocket: Rocket,
-        source: StorageHolder,
-        onTransfer?: () => void
-    ): HTMLElement {
-        const card = GUI.div({
-            classes: ['cargo-good-card'],
-            children: [
-                GUI.div({
-                    classes: ['cargo-good-info'],
-                    children: [
-                        GUI.heading(4, { textContent: item.good.name }),
-                        GUI.p({
-                            textContent: `Available: ${GUI.formatNumber(item.quantity, true)}`,
-                            classes: ['text-secondary']
-                        })
-                    ]
-                })
-            ]
-        });
-
-        // Transfer controls
-        const controls = GUI.div({ classes: ['cargo-controls'] });
-
-        // Transfer amounts: 1, 10, 50, All
-        const amounts = [1, 10, 50];
-        amounts.forEach(amount => {
-            if (amount <= item.quantity) {
-                const btn = GUI.button({
-                    classes: ['btn', 'btn-small'],
-                    textContent: `+${amount}`,
-                    onClick: () => {
-                        const transferAmount = Math.min(amount, item.quantity);
-                        const remaining = rocket.getCapacity() - rocket.getTotalQuantity();
-                        const actualAmount = Math.min(transferAmount, remaining);
-
-                        if (actualAmount > 0) {
-                            const success = rocket.addItemPosition(new ItemPosition(item.good, actualAmount));
-                            if (success && source.reduceItemQuantity(item.good.getId(), actualAmount)) {
-                                // Update the modal
-                                this.update(ModalType.CARGO_LOAD, { rocket, source, onTransfer });
-                                onTransfer?.();
-                            }
-                        }
-                    }
-                });
-                controls.appendChild(btn);
-            }
-        });
-
-        card.appendChild(controls);
-        return card;
-    }
-
-    private createUnloadCard(
-        item: ItemPosition,
-        rocket: Rocket,
-        destination: StorageHolder,
-        onTransfer?: () => void
-    ): HTMLElement {
-        const card = GUI.div({
-            classes: ['cargo-good-card', 'cargo-unload'],
-            children: [
-                GUI.div({
-                    classes: ['cargo-good-info'],
-                    children: [
-                        GUI.heading(4, { textContent: item.good.name }),
-                        GUI.p({
-                            textContent: `On Rocket: ${GUI.formatNumber(item.quantity, true)}`,
-                            classes: ['text-secondary']
-                        })
-                    ]
-                })
-            ]
-        });
-
-        // Transfer controls
-        const controls = GUI.div({ classes: ['cargo-controls'] });
-
-        // Transfer amounts: 1, 10, 50, All
-        const amounts = [1, 10, 50];
-        amounts.forEach(amount => {
-            if (amount <= item.quantity) {
-                const btn = GUI.button({
-                    classes: ['btn', 'btn-small'],
-                    textContent: `-${amount}`,
-                    onClick: () => {
-                        const transferAmount = Math.min(amount, item.quantity);
-                        const remaining = destination.getCapacity() - destination.getTotalQuantity();
-                        const actualAmount = Math.min(transferAmount, remaining);
-
-                        if (actualAmount > 0) {
-                            const success = destination.addItemPosition(new ItemPosition(item.good, actualAmount));
-                            if (success && rocket.reduceItemQuantity(item.good.getId(), actualAmount)) {
-                                // Update the modal
-                                this.update(ModalType.CARGO_LOAD, { rocket, source: destination, onTransfer });
-                                onTransfer?.();
-                            }
-                        }
-                    }
-                });
-                controls.appendChild(btn);
-            }
-        });
-
-        card.appendChild(controls);
-        return card;
-    }
-
     private createMergedCargoCard(
         good: any,
         sourceQty: number,
@@ -1501,55 +1391,7 @@ class ModalManager implements ModalController {
             this.update(ModalType.COLONY, colony);
         }
     }
-
-    /**
-     * @deprecated Use createModuleModal instead
-     * Create production module upgrade modal
-     */
-    private createProductionModuleModal(data: { module: ProductionModule; goodName: string; colony: Colony }): HTMLElement {
-        return this.createModuleModal({
-            module: data.module,
-            colony: data.colony,
-            modalType: ModalType.MODULE
-        });
-    }
-
-    /**
-     * @deprecated Use updateModuleModal instead
-     * Update production module modal
-     */
-    private updateProductionModuleModal(modal: HTMLElement, data: { module: ProductionModule; goodName: string; colony: Colony }): void {
-        this.updateModuleModal(modal, {
-            module: data.module,
-            colony: data.colony,
-            modalType: ModalType.MODULE
-        });
-    }
-
-    /**
-     * @deprecated Use createModuleModal instead
-     * Create infrastructure module upgrade modal
-     */
-    private createInfrastructureModuleModal(data: { module: InfrastructureModule; colony: Colony }): HTMLElement {
-        return this.createModuleModal({
-            module: data.module,
-            colony: data.colony,
-            modalType: ModalType.MODULE
-        });
-    }
-
-    /**
-     * @deprecated Use updateModuleModal instead
-     * Update infrastructure module modal
-     */
-    private updateInfrastructureModuleModal(modal: HTMLElement, data: { module: InfrastructureModule; colony: Colony }): void {
-        this.updateModuleModal(modal, {
-            module: data.module,
-            colony: data.colony,
-            modalType: ModalType.MODULE
-        });
-    }
-
+    
     /**
      * Create build module modal
      */

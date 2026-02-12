@@ -192,12 +192,14 @@ export function iconButton(
 
 /**
  * Create a button with upgrade styling
+ * Supports long-press: hold the button to continuously upgrade (when enabled)
  */
 export function upgradeButton(
     label: string,
     cost: string | number,
     iconName: string = 'sell',
-    onClick?: (event: MouseEvent) => void
+    onClick?: (event: MouseEvent) => void,
+    enableLongPress: boolean = false
 ): HTMLButtonElement {
     const icon = materialIcon(iconName);
     const costDiv = div({
@@ -208,11 +210,80 @@ export function upgradeButton(
         ]
     });
 
-    return button({
+    const btn = button({
         classes: ['btn', 'btn-upgrade'],
         children: [icon, costDiv],
         onClick
     });
+
+    // Long-press functionality (only for level modals)
+    if (onClick && enableLongPress) {
+        let longPressTimer: number | null = null;
+        let repeatTimer: number | null = null;
+        let isLongPress = false;
+
+        const startLongPress = () => {
+            isLongPress = false;
+            // After 500ms, start repeating
+            longPressTimer = window.setTimeout(() => {
+                isLongPress = true;
+                // Trigger first upgrade
+                onClick(new MouseEvent('click'));
+
+                // Then repeat every 100ms
+                repeatTimer = window.setInterval(() => {
+                    if (btn.disabled) {
+                        stopLongPress();
+                    } else {
+                        onClick(new MouseEvent('click'));
+                    }
+                }, 100);
+            }, 500);
+        };
+
+        const stopLongPress = () => {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+            if (repeatTimer) {
+                clearInterval(repeatTimer);
+                repeatTimer = null;
+            }
+            // Keep isLongPress state for a moment to prevent the click handler from firing
+            setTimeout(() => {
+                isLongPress = false;
+            }, 50);
+        };
+
+        // Override the original onClick to check for long press
+        const originalOnClick = onClick;
+        btn.onclick = (event) => {
+            // Only fire on normal clicks, not during/after long press
+            if (!isLongPress) {
+                originalOnClick(event);
+            }
+        };
+
+        // Handle mouse events
+        btn.addEventListener('mousedown', () => {
+            startLongPress();
+        });
+
+        btn.addEventListener('mouseup', stopLongPress);
+        btn.addEventListener('mouseleave', stopLongPress);
+
+        // Handle touch events for mobile
+        btn.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Prevent touch from also triggering mouse events
+            startLongPress();
+        });
+
+        btn.addEventListener('touchend', stopLongPress);
+        btn.addEventListener('touchcancel', stopLongPress);
+    }
+
+    return btn;
 }
 
 /**

@@ -32,7 +32,7 @@ abstract class LevelSystem {
     }
 
     getUpgradeCost(): number {
-        return Math.floor(50 * Math.pow(1.2, this.level));
+        return Math.floor(50 * Math.pow(1.2, this.level - 1));
     }
 
     // On upgrade event

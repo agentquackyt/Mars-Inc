@@ -8,6 +8,7 @@ import type { GameSession } from './models/sessionModel';
 import { config } from './models/sessionModel';
 import type { Company, Colony } from './models/company';
 import type { Rocket } from './models/storage';
+import { SellRouteState } from './models/storage';
 import { modalManager, ModalType } from './modalManager';
 import { GoodsRegistry } from './models/goodsRegistry';
 import { Good, ItemPosition } from './models/good';
@@ -53,7 +54,7 @@ class NavigationController implements ViewManager {
         }
 
         const buttons = GUI.queryAll<HTMLButtonElement>('.btn-icon', aside);
-        
+
         // Map buttons to views based on their icon
         const iconToView: Record<string, ViewType> = {
             'home': ViewType.HOME,
@@ -68,7 +69,7 @@ class NavigationController implements ViewManager {
             if (icon) {
                 const iconName = icon.textContent?.trim() || '';
                 const viewType = iconToView[iconName];
-                
+
                 if (viewType) {
                     this.navButtons.set(viewType, button);
                     button.onclick = () => this.switchView(viewType);
@@ -95,10 +96,10 @@ class NavigationController implements ViewManager {
 
         this.currentView = view;
         this.setActiveButton(view);
-        
+
         // Close all modals when switching views
         modalManager.closeAll();
-        
+
         // Render the new view with current session
         if (this.currentSession) {
             this.renderCurrentView(this.currentSession);
@@ -179,6 +180,27 @@ class NavigationController implements ViewManager {
                 }
             }
         });
+
+        // Update the sell all button
+        const sellAllButton = GUI.query<HTMLButtonElement>('.sell-all-button', this.appContainer);
+        if (sellAllButton) {
+            let allGoodsPriceCombined = 0;
+            GoodsRegistry.forEach((good) => {
+                const item = earthHQ.getItemPositions().find(ip => ip.good.getId() === good.getId());
+                if (item && item.quantity > 0) {
+                    allGoodsPriceCombined += Math.floor(item.quantity) * good.marketSellPrice;
+                }
+            });
+
+            // Update the price display in the button
+            const costAmountEl = GUI.query<HTMLElement>('.upgrade-cost-amount', sellAllButton);
+            if (costAmountEl) {
+                costAmountEl.textContent = GUI.formatMoney(allGoodsPriceCombined);
+            }
+
+            // Disable button if no goods
+            sellAllButton.disabled = allGoodsPriceCombined === 0;
+        }
     }
 
     /**
@@ -186,7 +208,7 @@ class NavigationController implements ViewManager {
      */
     private updateRocketsViewIncremental(session: GameSession): void {
         const rocketCards = GUI.queryAll<HTMLElement>('.rocket-card', this.appContainer);
-        
+
         session.rockets.forEach((rocket, index) => {
             const card = rocketCards[index];
             if (!card) return;
@@ -197,15 +219,15 @@ class NavigationController implements ViewManager {
             // Update status text
             const statusEl = GUI.query<HTMLElement>('.rocket-status', card);
             if (statusEl) {
-                statusEl.textContent = destination 
-                    ? (isExploration ? `Exploring ${destination.name}` : `En route to ${destination.name}`) 
+                statusEl.textContent = destination
+                    ? (isExploration ? `Exploring ${destination.name}` : `En route to ${destination.name}`)
                     : `Docked at ${rocket.getLocation().name}`;
             }
 
             // Update or remove progress bar
             const existingProgress = GUI.query<HTMLElement>('.sol-progress-bar', card);
             const rocketInfo = GUI.query<HTMLElement>('.rocket-info', card);
-            
+
             if (destination && rocket.initialTravelTime > 0 && rocketInfo) {
                 const progress = Math.max(0, Math.min(100, ((rocket.initialTravelTime - rocket.estimatedTravelTime) / rocket.initialTravelTime) * 100));
                 const remainingSol = rocket.estimatedTravelTime / config.minutesPerSol;
@@ -231,7 +253,7 @@ class NavigationController implements ViewManager {
                         children: [
                             GUI.div({
                                 classes: ['sol-progress-fill'],
-                                styles: { 
+                                styles: {
                                     width: `${progress}%`,
                                     backgroundColor: isExploration ? 'var(--action-upgrade)' : 'var(--text-primary)'
                                 }
@@ -244,7 +266,7 @@ class NavigationController implements ViewManager {
                         classes: ['text-secondary'],
                         styles: { fontSize: '12px', margin: '4px 0' }
                     });
-                    
+
                     // Insert after status text
                     if (statusEl && statusEl.nextSibling) {
                         rocketInfo.insertBefore(progressBar, statusEl.nextSibling);
@@ -352,7 +374,7 @@ class NavigationController implements ViewManager {
 
     private createQuickStatsGrid(session: GameSession): HTMLElement {
         const company = session.company;
-        
+
         return GUI.div({
             classes: ['stats-grid'],
             children: [
@@ -419,8 +441,14 @@ class NavigationController implements ViewManager {
             rocketsView.appendChild(GUI.p({ textContent: 'No rockets available. Build one to start exploring!' }));
         } else {
             const rocketsList = GUI.div({ classes: ['rockets-list'] });
-            
-            session.rockets.forEach(rocket => {
+
+            // Sort rockets: normal rockets first, sell route rockets last
+            const sortedRockets = [...session.rockets].sort((a, b) => {
+                if (a.sellRoute === b.sellRoute) return 0;
+                return a.sellRoute ? 1 : -1;
+            });
+
+            sortedRockets.forEach(rocket => {
                 const rocketCard = this.createRocketCard(rocket, session);
                 rocketsList.appendChild(rocketCard);
             });
@@ -434,29 +462,41 @@ class NavigationController implements ViewManager {
     private createRocketCard(rocket: Rocket, session: GameSession): HTMLElement {
         const destination = rocket.getDestination();
         const isExploration = session.explorationMissions.some(m => m.rocketId === rocket.getId());
-        const status = destination 
-            ? (isExploration ? `Exploring ${destination.name}` : `En route to ${destination.name}`) 
-            : `Docked at ${rocket.getLocation().name}`;
-        
+
+        let status = '';
+        if (rocket.sellRoute) {
+            if (destination) {
+                status = rocket.sellRouteState === SellRouteState.TRAVELING_TO_EARTH
+                    ? `🔄 Sell Route: To Earth`
+                    : `🔄 Sell Route: Returning`;
+            } else {
+                status = `🔄 Sell Route: At ${rocket.getLocation().name}`;
+            }
+        } else {
+            status = destination
+                ? (isExploration ? `Exploring ${destination.name}` : `En route to ${destination.name}`)
+                : `Docked at ${rocket.getLocation().name}`;
+        }
+
         const totalQuantity = rocket.getTotalQuantity();
         const capacity = rocket.getCapacity();
 
         // Check if docked at a colony or warehouse
         const isDocked = !destination;
-        const dockedLocation = isDocked ? 
+        const dockedLocation = isDocked ?
             session.company.colonies.find(c => c.locationId.getId() === rocket.getLocation().getId()) : null;
 
-        const buttonContainer = GUI.div({ 
+        const buttonContainer = GUI.div({
             classes: ['rocket-actions'],
             styles: { display: 'flex', flexDirection: 'column', gap: '8px' }
         });
-        
+
         // First row: View and Load Cargo
-        const firstRow = GUI.div({ 
+        const firstRow = GUI.div({
             classes: ['row'],
             styles: { gap: '8px' }
         });
-        
+
         firstRow.appendChild(GUI.button({
             classes: ['btn', 'btn-small'],
             textContent: 'View',
@@ -483,28 +523,68 @@ class NavigationController implements ViewManager {
 
         buttonContainer.appendChild(firstRow);
 
-        // Second row: Travel and Explore (only if docked)
+        // Second row: Sell Route toggle or Travel/Explore (only if docked)
         if (dockedLocation) {
-            const secondRow = GUI.div({ 
+            const secondRow = GUI.div({
                 classes: ['row'],
                 styles: { gap: '8px' }
             });
 
-            secondRow.appendChild(GUI.button({
-                classes: ['btn', 'btn-small'],
-                textContent: 'Travel',
-                onClick: () => {
-                    modalManager.open(ModalType.TRAVEL, { rocket, session });
-                }
-            }));
+            // Show sell route toggle only if not at Earth
+            if (dockedLocation.locationId.getType() !== 'Earth') {
+                if (rocket.sellRoute) {
+                    // Show stop button
+                    const stopBtn = GUI.button({
+                        classes: ['btn', 'btn-small', 'btn-danger'],
+                        textContent: 'Stop Sell Route',
+                        onClick: () => {
+                            rocket.sellRoute = false;
+                            rocket.sellRouteOriginId = null;
+                            rocket.sellRouteState = SellRouteState.IDLE;
+                            this.updateView(session);
+                        }
+                    });
+                    secondRow.appendChild(stopBtn);
+                } else {
+                    // Show start button along with other normal buttons
+                    const startSellRouteBtn = GUI.button({
+                        classes: ['btn', 'btn-small', 'btn-accent'],
+                        textContent: 'Start Sell Route',
+                        onClick: () => {
+                            rocket.sellRoute = true;
+                            rocket.sellRouteOriginId = dockedLocation.colonyId;
+                            rocket.sellRouteState = SellRouteState.IDLE;
 
-            secondRow.appendChild(GUI.button({
-                classes: ['btn', 'btn-small'],
-                textContent: 'Explore',
-                onClick: () => {
-                    modalManager.open(ModalType.EXPLORATION, { rocket, session });
+                            // Start immediately
+                            const gameManager = (window as any).gameManager;
+                            if (gameManager) {
+                                gameManager.handleSellRouteAutomation(rocket);
+                            }
+
+                            this.updateView(session);
+                        }
+                    });
+                    secondRow.appendChild(startSellRouteBtn);
+
+                    // Show Explore button
+                    secondRow.appendChild(GUI.button({
+                        classes: ['btn', 'btn-small'],
+                        textContent: 'Explore',
+                        onClick: () => {
+                            modalManager.open(ModalType.EXPLORATION, { rocket, session });
+                        }
+                    }));
                 }
-            }));
+            } else {
+                // At Earth, only show Explore button (no sell route)
+                secondRow.appendChild(GUI.button({
+                    classes: ['btn', 'btn-small'],
+                    textContent: 'Explore',
+                    onClick: () => {
+                        modalManager.open(ModalType.EXPLORATION, { rocket, session });
+                    }
+                }));
+            }
 
             buttonContainer.appendChild(secondRow);
         }
@@ -517,16 +597,16 @@ class NavigationController implements ViewManager {
         // Add progress bar if traveling
         if (destination && rocket.initialTravelTime > 0) {
             const progress = Math.max(0, Math.min(100, ((rocket.initialTravelTime - rocket.estimatedTravelTime) / rocket.initialTravelTime) * 100));
-            
+
             console.log(`[Create Rocket Card] ${rocket.name}: progress=${progress.toFixed(1)}%, initial=${rocket.initialTravelTime.toFixed(2)}min, remaining=${rocket.estimatedTravelTime.toFixed(2)}min`);
-            
+
             const progressBar = GUI.div({
                 classes: ['sol-progress-bar'],
                 styles: { marginTop: '8px', marginBottom: '8px' },
                 children: [
                     GUI.div({
                         classes: ['sol-progress-fill'],
-                        styles: { 
+                        styles: {
                             width: `${progress}%`,
                             backgroundColor: isExploration ? 'var(--action-upgrade)' : 'var(--text-primary)'
                         }
@@ -581,7 +661,7 @@ class NavigationController implements ViewManager {
             coloniesView.appendChild(GUI.p({ textContent: 'No colonies established yet.' }));
         } else {
             const coloniesList = GUI.div({ classes: ['colonies-list'] });
-            
+
             session.company.colonies.forEach(colony => {
                 const colonyCard = this.createColonyCard(colony, session);
                 coloniesList.appendChild(colonyCard);
@@ -618,12 +698,12 @@ class NavigationController implements ViewManager {
                     classes: ['row'], // Stack buttons or row? "next to the manage button" -> row
                     styles: { gap: '8px' },
                     children: [
-                         GUI.button({
+                        GUI.button({
                             classes: ['btn', 'btn-small'],
                             textContent: 'Manage',
                             onClick: () => modalManager.open(ModalType.COLONY, colony)
                         }),
-                         GUI.button({
+                        GUI.button({
                             classes: ['btn', 'btn-small', 'btn-accent'],
                             textContent: 'Rockets',
                             onClick: () => {
@@ -655,12 +735,34 @@ class NavigationController implements ViewManager {
 
         const buildingsView = GUI.div({ classes: ['buildings-view', 'market-view'] });
         buildingsView.appendChild(GUI.heading(2, { textContent: 'World Market (Earth)' }));
-        buildingsView.appendChild(GUI.p({ 
-            textContent: 'Buy and sell goods at Earth market prices', 
-            classes: ['market-description'] 
+        buildingsView.appendChild(GUI.p({
+            textContent: 'Buy and sell goods at Earth market prices',
+            classes: ['market-description']
         }));
 
-        // Market goods grid
+        // Calculate total value of all goods in Earth HQ
+        const earthHQ = session.company.colonies.find(c =>
+            c.locationId.name === 'Earth HQ' || c.name === 'Earth HQ'
+        );
+
+        let allGoodsPriceCombined = 0;
+        if (earthHQ) {
+            GoodsRegistry.forEach((good) => {
+                const item = earthHQ.getItemPositions().find(ip => ip.good.getId() === good.getId());
+                if (item && item.quantity > 0) {
+                    allGoodsPriceCombined += Math.floor(item.quantity) * good.marketSellPrice;
+                }
+            });
+        }
+
+        // Create sell all button
+        const sellAllButton = GUI.upgradeButton('Sell all goods', allGoodsPriceCombined, 'sell', () => {
+            this.handleSellAllGoods(session);
+        });
+        sellAllButton.classList.add('sell-all-button');
+        sellAllButton.disabled = allGoodsPriceCombined === 0;
+        buildingsView.appendChild(sellAllButton);
+
         const marketGrid = GUI.div({ classes: ['market-grid'] });
 
         GoodsRegistry.forEach((good, goodId) => {
@@ -685,7 +787,7 @@ class NavigationController implements ViewManager {
             if (item) playerQuantity = item.quantity;
         }
 
-        const iconMap: {[key: string]: string} = {
+        const iconMap: { [key: string]: string } = {
             'Food': 'dining',
             'Electronics': 'memory',
             'Fuel': 'oil_barrel',
@@ -694,7 +796,7 @@ class NavigationController implements ViewManager {
         // Specific overrides
         if (good.name === 'O2') iconMap['Fuel'] = 'spo2';
         if (good.name === 'Water') iconMap['Food'] = 'water_drop';
-        
+
         const icon = iconMap[good.category] || 'inventory_2';
 
         const card = GUI.div({
@@ -719,24 +821,24 @@ class NavigationController implements ViewManager {
                         })
                     ]
                 }),
-                
+
                 // Prices strip
                 GUI.div({
                     classes: ['market-prices-compact'],
                     children: [
-                        GUI.div({ 
-                            classes: ['price-tag', 'buy'], 
+                        GUI.div({
+                            classes: ['price-tag', 'buy'],
                             children: [
                                 GUI.span({ textContent: 'B:', classes: [] }),
                                 GUI.span({ textContent: GUI.formatMoney(good.marketBuyPrice) })
                             ]
                         }),
-                        GUI.div({ 
-                            classes: ['price-tag', 'sell'], 
+                        GUI.div({
+                            classes: ['price-tag', 'sell'],
                             children: [
                                 GUI.span({ textContent: 'S:', classes: [] }),
                                 GUI.span({ textContent: GUI.formatMoney(good.marketSellPrice) })
-                            ] 
+                            ]
                         })
                     ]
                 }),
@@ -745,10 +847,10 @@ class NavigationController implements ViewManager {
                 GUI.div({
                     classes: ['market-actions-compact'],
                     children: [
-                         // Row 1: Buy
+                        // Row 1: Buy
                         this.createCompactButton('Buy 1', GUI.formatMoney(good.marketBuyPrice), 'btn-buy', () => this.handleMarketBuy(good, good.marketBuyPrice, 1, session), good),
                         this.createCompactButton('Buy 10', GUI.formatMoney(good.marketBuyPrice * 10), 'btn-buy', () => this.handleMarketBuy(good, good.marketBuyPrice, 10, session), good),
-                        
+
                         // Row 2: Sell
                         this.createCompactSellButton(good, good.marketSellPrice, 1, 'Sell 1', session),
                         this.createCompactSellButton(good, good.marketSellPrice, -1, 'Sell All', session)
@@ -761,7 +863,7 @@ class NavigationController implements ViewManager {
     }
 
     private createCompactButton(label: string, subText: string, btnClass: string, onClick: () => void, good: Good): HTMLButtonElement {
-         return GUI.button({
+        return GUI.button({
             classes: ['btn', btnClass, 'btn-compact'],
             dataset: { goodId: String(good.getId()) },
             children: [
@@ -772,18 +874,18 @@ class NavigationController implements ViewManager {
         });
     }
 
-private createCompactSellButton(good: Good, price: number, quantity: number, label: string, session: GameSession): HTMLButtonElement {
+    private createCompactSellButton(good: Good, price: number, quantity: number, label: string, session: GameSession): HTMLButtonElement {
         const isAllButton = quantity === -1;
-        
+
         // Calculate initial price for display (if available)
         let displayPrice = "??";
         if (isAllButton) {
-             const earthHQ = session.company.colonies.find(c => c.locationId.name === 'Earth HQ' || c.name === 'Earth HQ');
-             if (earthHQ) {
+            const earthHQ = session.company.colonies.find(c => c.locationId.name === 'Earth HQ' || c.name === 'Earth HQ');
+            if (earthHQ) {
                 const item = earthHQ.getItemPositions().find(ip => ip.good.getId() === good.getId());
                 const currentQty = item ? Math.floor(item.quantity) : 0;
                 displayPrice = currentQty > 0 ? GUI.formatMoney(price * currentQty) : GUI.formatMoney(0);
-             }
+            }
         } else {
             displayPrice = GUI.formatMoney(price * quantity);
         }
@@ -822,7 +924,7 @@ private createCompactSellButton(good: Good, price: number, quantity: number, lab
         if (earthHQ) {
             const item = earthHQ.getItemPositions().find(ip => ip.good.getId() === good.getId());
             const playerQuantity = item ? item.quantity : 0;
-            
+
             if (isAllButton) {
                 if (playerQuantity < 1) {
                     button.disabled = true;
@@ -833,9 +935,9 @@ private createCompactSellButton(good: Good, price: number, quantity: number, lab
                 }
             }
         } else {
-             // If no HQ found, disable sell buttons implicitly? 
-             // Though current logic allowed them enabled if !isAllButton in some cases if earthHQ was missing earlier in code but here it checks
-             // Safest to just keep existing logic structure but extended
+            // If no HQ found, disable sell buttons implicitly? 
+            // Though current logic allowed them enabled if !isAllButton in some cases if earthHQ was missing earlier in code but here it checks
+            // Safest to just keep existing logic structure but extended
         }
 
 
@@ -844,14 +946,14 @@ private createCompactSellButton(good: Good, price: number, quantity: number, lab
 
     private handleMarketBuy(good: Good, price: number, quantity: number, session: GameSession): void {
         const totalCost = price * quantity;
-        
+
         if (!session.company.deductMoney(totalCost)) {
             alert('Not enough money!');
             return;
         }
 
         // Find the Earth HQ colony
-        const earthHQ = session.company.colonies.find(c => 
+        const earthHQ = session.company.colonies.find(c =>
             c.locationId.name === 'Earth HQ' || c.name === 'Earth HQ'
         );
 
@@ -875,7 +977,7 @@ private createCompactSellButton(good: Good, price: number, quantity: number, lab
 
     private handleMarketSell(good: Good, price: number, quantity: number, session: GameSession): void {
         // Find the Earth HQ colony
-        const earthHQ = session.company.colonies.find(c => 
+        const earthHQ = session.company.colonies.find(c =>
             c.locationId.name === 'Earth HQ' || c.name === 'Earth HQ'
         );
 
@@ -903,6 +1005,50 @@ private createCompactSellButton(good: Good, price: number, quantity: number, lab
         }
 
         const totalEarned = price * quantity;
+        session.company.addMoney(totalEarned);
+        hudController.updateMoneyDisplay(session.company.getMoney());
+        // Update market values
+        this.updateMarketValues(session);
+    }
+
+    private handleSellAllGoods(session: GameSession): void {
+        // Find the Earth HQ colony
+        const earthHQ = session.company.colonies.find(c =>
+            c.locationId.name === 'Earth HQ' || c.name === 'Earth HQ'
+        );
+
+        if (!earthHQ) {
+            alert('Earth HQ not found!');
+            return;
+        }
+
+        let totalEarned = 0;
+        const itemsToSell: Array<{ good: Good, quantity: number, price: number }> = [];
+
+        // Collect all items to sell
+        GoodsRegistry.forEach((good) => {
+            const item = earthHQ.getItemPositions().find(ip => ip.good.getId() === good.getId());
+            if (item && item.quantity > 0) {
+                const quantity = Math.floor(item.quantity);
+                itemsToSell.push({ good, quantity, price: good.marketSellPrice });
+                totalEarned += quantity * good.marketSellPrice;
+            }
+        });
+
+        if (itemsToSell.length === 0) {
+            alert('No goods to sell!');
+            return;
+        }
+
+        // Sell all items
+        itemsToSell.forEach(({ good, quantity }) => {
+            earthHQ.reduceItemQuantity(good.getId(), quantity);
+            const item = earthHQ.getItemPositions().find(ip => ip.good.getId() === good.getId());
+            if (item && item.quantity === 0) {
+                earthHQ.removeItemPosition(good.getId());
+            }
+        });
+
         session.company.addMoney(totalEarned);
         hudController.updateMoneyDisplay(session.company.getMoney());
         // Update market values
@@ -938,24 +1084,24 @@ private createCompactSellButton(good: Good, price: number, quantity: number, lab
      */
     private createStorageSection(storageHolder: Rocket | Colony | any): HTMLElement {
         const items = storageHolder.getItemPositions();
-        
+
         const storageSection = GUI.div({ classes: ['storage-section'] });
-        
+
         if (items.length === 0) {
-            storageSection.appendChild(GUI.p({ 
-                textContent: 'No items in storage', 
-                classes: ['storage-empty'] 
+            storageSection.appendChild(GUI.p({
+                textContent: 'No items in storage',
+                classes: ['storage-empty']
             }));
         } else {
             const itemsList = GUI.div({ classes: ['storage-items-list'] });
-            
+
             items.forEach((itemPosition: any) => {
                 const itemCard = GUI.div({
                     classes: ['storage-item'],
                     children: [
-                        GUI.span({ 
-                            textContent: itemPosition.good.name, 
-                            classes: ['storage-item-name'] 
+                        GUI.span({
+                            textContent: itemPosition.good.name,
+                            classes: ['storage-item-name']
                         }),
                         GUI.span({
                             textContent: `×${GUI.formatNumber(itemPosition.quantity, true)}`,
@@ -965,10 +1111,10 @@ private createCompactSellButton(good: Good, price: number, quantity: number, lab
                 });
                 itemsList.appendChild(itemCard);
             });
-            
+
             storageSection.appendChild(itemsList);
         }
-        
+
         return storageSection;
     }
 }

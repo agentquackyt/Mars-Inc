@@ -14,10 +14,30 @@ const SpaceConnections: SpaceConnection[] = [
     {from: LocationType.EARTH, to: LocationType.SPACE_STATION, travelTime: 1, fuelCost: 500}
 ]
 
+function findSpaceConnection(from: LocationType, to: LocationType): SpaceConnection | undefined {
+    // Try direct connection
+    let connection = SpaceConnections.find(conn => conn.from === from && conn.to === to);
+
+    // Try reverse connection
+    if (!connection) {
+        connection = SpaceConnections.find(conn => conn.from === to && conn.to === from);
+    }
+
+    return connection;
+}
+
+enum SellRouteState {
+    IDLE = 'idle',
+    LOADING = 'loading',
+    TRAVELING_TO_EARTH = 'to_earth',
+    SELLING = 'selling',
+    TRAVELING_TO_ORIGIN = 'to_origin'
+}
+
 abstract class StorageHolder extends LevelSystem {
     private items: ItemPosition[];
     private baseCapacity: number;
-    protected scaleFactor: number = 1.02; // For future use in upgrades that increase capacity
+    protected scaleFactor: number = 1.17; // For future use in upgrades that increase capacity
 
 
     constructor(items: ItemPosition[], capacity: number, initialLevel: number = 1) {
@@ -94,6 +114,9 @@ class Rocket extends StorageHolder {
     initialTravelTime: number; // total journey duration in minutes
     locationId: SpaceLocation;
     destinationId: SpaceLocation | null;
+    sellRoute: boolean = false;              // Is this rocket on a sell route?
+    sellRouteOriginId: string | null = null; // Colony ID of the origin
+    sellRouteState: SellRouteState = SellRouteState.IDLE;
 
     constructor(id: string, name: string, estimatedTravelTime: number, locationId: SpaceLocation, initialLevel: number = 1) {
         super([], 100, initialLevel); // Default capacity of 100 units, level 1
@@ -126,7 +149,7 @@ class Rocket extends StorageHolder {
         // Cannot travel to same location
         if (this.locationId.getId() === destinationId.getId()) return false;
 
-        const connection = SpaceConnections.find(conn => conn.from === this.locationId.getType() && conn.to === destinationId.getType());
+        const connection = findSpaceConnection(this.locationId.getType(), destinationId.getType());
         
         // If no direct connection, maybe just allow it with default time? 
         // For now, only allow valid connections
@@ -164,7 +187,10 @@ class Rocket extends StorageHolder {
             initialTravelTime: this.initialTravelTime,
             location: this.locationId.toData(),
             destination: this.destinationId ? this.destinationId.toData() : null,
-            storage: this.toStorageData()
+            storage: this.toStorageData(),
+            sellRoute: this.sellRoute,
+            sellRouteOriginId: this.sellRouteOriginId,
+            sellRouteState: this.sellRouteState
         };
     }
 
@@ -178,8 +204,11 @@ class Rocket extends StorageHolder {
             const dest = locations.get(data.destination.uuid) ?? SpaceLocation.fromData(data.destination);
             rocket.destinationId = dest;
         }
+        rocket.sellRoute = data.sellRoute ?? false;
+        rocket.sellRouteOriginId = data.sellRouteOriginId ?? null;
+        rocket.sellRouteState = data.sellRouteState ?? SellRouteState.IDLE;
         return rocket;
     }
 }
 
-export { StorageHolder, Rocket, SpaceConnections };
+export { StorageHolder, Rocket, SpaceConnections, SellRouteState, findSpaceConnection };

@@ -59,7 +59,7 @@ class InfrastructureModule extends Module {
     constructor(infrastructureId: InfrastructureType, initialLevel: number = 1) {
         super(ModuleType.INFRASTRUCTURE, initialLevel);
         this.infrastructureId = infrastructureId;
-        this.MAX_LEVEL = 99;
+        this.MAX_LEVEL = 499;
     }
 
     public getWorkersNeeded(level?: number): number {
@@ -89,7 +89,7 @@ class InfrastructureModule extends Module {
             case InfrastructureType.ROCKET_LAB:
                 return Math.floor(lvl / 10)+1; // Rockets allowed
             case InfrastructureType.STOREROOM:
-                return 100 * Math.pow(1.09, (level ?? this.getLevel()) - 1); // Storage capacity
+                return 200 * Math.pow(1.2, (level ?? this.getLevel()) - 1); // Storage capacity
             default:
                 return 0;
         }
@@ -138,10 +138,10 @@ class ProductionModule extends Module {
     goodId: number;
     initialQuantityPerSol: number;
 
-    constructor(goodId: number, quantityPerSol: number, initialLevel: number = 1) {
+    constructor(goodId: number, initialLevel: number = 1) {
         super(ModuleType.PRODUCTION, initialLevel);
         this.goodId = goodId;
-        this.initialQuantityPerSol = quantityPerSol * (GoodsRegistry.get(goodId)?.baseProductionPerSol ?? 1);
+        this.initialQuantityPerSol = GoodsRegistry.get(goodId)?.baseProductionPerSol ?? 1;
     }
 
     public getWorkersNeeded(level?: number): number {
@@ -158,7 +158,7 @@ class ProductionModule extends Module {
     }
 
     public getQuantityPerSol(level?: number): number {
-        return this.initialQuantityPerSol * Math.pow(1.09, (level ?? this.getLevel()) - 1);
+        return this.initialQuantityPerSol * Math.pow(1.2, (level ?? this.getLevel()) - 1);
     }
 
     override onUpgrade(): void {
@@ -176,7 +176,6 @@ class ProductionModule extends Module {
     toData() {
         return {
             goodId: this.goodId,
-            initialQuantityPerSol: this.initialQuantityPerSol,
             level: this.getLevel()
         };
     }
@@ -195,7 +194,7 @@ class Colony extends StorageHolder {
         this.locationId = locationId;
         this.colonyModules = colonyModules;
 
-        this.scaleFactor = 1.1; // Colonies have a more modest capacity growth
+        this.scaleFactor = 1.175; // Colonies have a more modest capacity growth
         this.MAX_LEVEL = 1499;
     }
 
@@ -312,7 +311,7 @@ class Colony extends StorageHolder {
                 return new InfrastructureModule(entry.infrastructureId, entry.level ?? 1);
             } else {
                 // Default to ProductionModule for backwards compatibility
-                return new ProductionModule(entry.goodId, entry.initialQuantityPerSol, entry.level ?? 1);
+                return new ProductionModule(entry.goodId, entry.level ?? 1);
             }
         });
         return colony;
@@ -350,7 +349,7 @@ class Company extends LevelSystem {
         super(1);
         this.id = id;
         this.name = name;
-        this.credits = 1000;
+        this.credits = 5000;
         this.colonies = [];
     }
     

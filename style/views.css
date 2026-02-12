@@ -255,6 +255,10 @@ aside .btn-icon.active {
     width: 100%;
     margin-bottom: var(--spacing-3xl);
 }
+.market-view .btn-upgrade {
+    width: 100%;
+    margin-bottom: var(--spacing-2xl);
+}
 
 .market-description {
     color: var(--mars-text);
