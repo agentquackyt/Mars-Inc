@@ -8,11 +8,12 @@ import type { GameSession } from './models/sessionModel';
 import { config } from './models/sessionModel';
 import type { Company, Colony } from './models/company';
 import type { Rocket } from './models/storage';
-import { SellRouteState } from './models/storage';
+import { SellRouteState, SpaceConnections } from './models/storage';
 import { modalManager, ModalType } from './modalManager';
 import { GoodsRegistry } from './models/goodsRegistry';
 import { Good, ItemPosition } from './models/good';
 import { hudController } from './hudController';
+import { LocationType, SpaceLocation, getProductionModifierForLocation } from './models/location';
 
 export enum ViewType {
     HOME = 'home',
@@ -407,24 +408,121 @@ class NavigationController implements ViewManager {
         const locationsView = GUI.div({ classes: ['locations-view'] });
         locationsView.appendChild(GUI.heading(2, { textContent: 'Locations' }));
 
-        // Collect all unique locations
-        const locations = new Set<string>();
-        session.company.colonies.forEach(col => locations.add(col.locationId.name));
+        // Collect all unique locations with their SpaceLocation objects
+        const locationsMap = new Map<string, SpaceLocation>();
+        session.company.colonies.forEach(col => {
+            if (!locationsMap.has(col.locationId.getId())) {
+                locationsMap.set(col.locationId.getId(), col.locationId);
+            }
+        });
 
-        if (locations.size === 0) {
+        if (locationsMap.size === 0) {
             locationsView.appendChild(GUI.p({ textContent: 'No locations discovered yet.' }));
         } else {
             const locationsList = GUI.div({ classes: ['locations-list'] });
-            locations.forEach(locationName => {
-                const locationCard = GUI.div({
-                    classes: ['location-card'],
+
+            locationsMap.forEach(location => {
+                // Get colonies at this location
+                const coloniesAtLocation = session.company.colonies.filter(
+                    col => col.locationId.getId() === location.getId()
+                );
+
+                // Get rockets at this location
+                const rocketsAtLocation = session.rockets.filter(
+                    rocket => rocket.getLocation().getId() === location.getId() && !rocket.getDestination()
+                );
+
+                // Get production modifier
+                const productionModifier = getProductionModifierForLocation(location.getType());
+
+                // Find available routes from this location
+                const availableRoutes = SpaceConnections.filter(
+                    conn => conn.from === location.getType()
+                ).map(conn => {
+                    return {
+                        destination: conn.to,
+                        travelTime: conn.travelTime,
+                        fuelCost: conn.fuelCost
+                    };
+                });
+
+                const locationCard = GUI.div({ classes: ['location-card'] });
+
+                // Header with icon and name
+                const header = GUI.div({
+                    classes: ['location-header'],
                     children: [
                         GUI.materialIcon('globe_location_pin', { classes: ['location-icon'] }),
-                        GUI.heading(3, { textContent: locationName })
+                        GUI.heading(3, { textContent: location.name })
                     ]
                 });
+                locationCard.appendChild(header);
+
+                // Production modifier info
+                const productionInfo = GUI.div({
+                    classes: ['location-info'],
+                    children: [
+                        GUI.span({
+                            textContent: `Production: ${productionModifier}x`,
+                            classes: ['location-stat']
+                        })
+                    ]
+                });
+                locationCard.appendChild(productionInfo);
+
+                // Colonies section
+                if (coloniesAtLocation.length > 0) {
+                    const coloniesSection = GUI.div({ classes: ['location-section'] });
+                    coloniesSection.appendChild(
+                        GUI.heading(4, { textContent: `Colonies (${coloniesAtLocation.length})` })
+                    );
+                    const coloniesList = GUI.createElement('ul', { classes: ['location-list'] });
+                    coloniesAtLocation.forEach(colony => {
+                        coloniesList.appendChild(
+                            GUI.createElement('li', { textContent: `${colony.name} (Level ${colony.getLevel()})` })
+                        );
+                    });
+                    coloniesSection.appendChild(coloniesList);
+                    locationCard.appendChild(coloniesSection);
+                }
+
+                // Rockets section
+                if (rocketsAtLocation.length > 0) {
+                    const rocketsSection = GUI.div({ classes: ['location-section'] });
+                    rocketsSection.appendChild(
+                        GUI.heading(4, { textContent: `Rockets Docked (${rocketsAtLocation.length})` })
+                    );
+                    const rocketsList = GUI.createElement('ul', { classes: ['location-list'] });
+                    rocketsAtLocation.forEach(rocket => {
+                        rocketsList.appendChild(
+                            GUI.createElement('li', { textContent: rocket.name })
+                        );
+                    });
+                    rocketsSection.appendChild(rocketsList);
+                    locationCard.appendChild(rocketsSection);
+                }
+
+                // Routes section
+                if (availableRoutes.length > 0) {
+                    const routesSection = GUI.div({ classes: ['location-section'] });
+                    routesSection.appendChild(
+                        GUI.heading(4, { textContent: 'Travel Routes' })
+                    );
+                    const routesList = GUI.createElement('ul', { classes: ['location-list'] });
+                    availableRoutes.forEach(route => {
+                        routesList.appendChild(
+                            GUI.createElement('li', {
+                                textContent: `${route.destination} (${route.travelTime} sol, ${GUI.formatNumber(route.fuelCost)} fuel)`
+                            })
+                        );
+                    });
+                    routesSection.appendChild(routesList);
+                    locationCard.appendChild(routesSection);
+                }
+
                 locationsList.appendChild(locationCard);
             });
+
             locationsView.appendChild(locationsList);
         }
 

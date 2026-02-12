@@ -6,12 +6,12 @@ import { config } from "./sessionModel";
 type SpaceConnection = { from: LocationType, to: LocationType, travelTime: number, fuelCost: number };
 
 const SpaceConnections: SpaceConnection[] = [
-    {from: LocationType.EARTH, to: LocationType.MARS, travelTime: 12, fuelCost: 100_000},
-    {from: LocationType.EARTH, to: LocationType.MOON, travelTime: 4, fuelCost: 30_000},
-    {from: LocationType.MOON, to: LocationType.MARS, travelTime: 7, fuelCost: 50_000},
-    {from: LocationType.SPACE_STATION, to: LocationType.MARS, travelTime: 10, fuelCost: 90_000},
-    {from: LocationType.SPACE_STATION, to: LocationType.MOON, travelTime: 3, fuelCost: 20_000},
-    {from: LocationType.EARTH, to: LocationType.SPACE_STATION, travelTime: 1, fuelCost: 500}
+    {from: LocationType.EARTH, to: LocationType.MARS, travelTime: 6, fuelCost: 100_000},
+    {from: LocationType.EARTH, to: LocationType.MOON, travelTime: 2, fuelCost: 30_000},
+    {from: LocationType.MOON, to: LocationType.MARS, travelTime: 5, fuelCost: 50_000},
+    {from: LocationType.SPACE_STATION, to: LocationType.MARS, travelTime: 5, fuelCost: 90_000},
+    {from: LocationType.SPACE_STATION, to: LocationType.MOON, travelTime: 1, fuelCost: 20_000},
+    {from: LocationType.EARTH, to: LocationType.SPACE_STATION, travelTime: 0.5, fuelCost: 500}
 ]
 
 function findSpaceConnection(from: LocationType, to: LocationType): SpaceConnection | undefined {
@@ -37,7 +37,7 @@ enum SellRouteState {
 abstract class StorageHolder extends LevelSystem {
     private items: ItemPosition[];
     private baseCapacity: number;
-    protected scaleFactor: number = 1.17; // For future use in upgrades that increase capacity
+    protected scaleFactor: number = 1.2; // For future use in upgrades that increase capacity
 
 
     constructor(items: ItemPosition[], capacity: number, initialLevel: number = 1) {

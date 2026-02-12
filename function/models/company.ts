@@ -1,6 +1,6 @@
 import { StorageHolder } from "./storage";
 import { LevelSystem, type LevelProperty } from "./level";
-import type { SpaceLocation } from "./location";
+import { SpaceLocation } from "./location";
 import { getProductionModifierForLocation, SpaceLocation as SpaceLocationClass } from "./location";
 import { ItemPosition, Good } from "./good";
 import { GoodsRegistry } from "./goodsRegistry";
@@ -204,7 +204,7 @@ class Colony extends StorageHolder {
     }
 
     getProductionMultiplier(): number {
-        return getProductionModifierForLocation(this.locationId.getType()) * Math.pow(1.02, this.getLevel() - 1);
+        return getProductionModifierForLocation(this.locationId.getType()) * getProductionModifierForLocation(this.locationId.getType()) * Math.pow(1.02, this.getLevel() - 1);
     }
 
     override getCapacity(lvl?: number): number {
@@ -216,7 +216,7 @@ class Colony extends StorageHolder {
             .filter(module => module.infrastructureId === InfrastructureType.STOREROOM)
             .reduce((total, module) => total + module.getBenefitValue(), 0);
         
-        return Math.floor(baseCapacity + storeroomBonus);
+        return getProductionModifierForLocation(this.locationId.getType()) * getProductionModifierForLocation(this.locationId.getType()) *  Math.floor(baseCapacity + storeroomBonus);
     }
 
     addColonyModule(module: Module): boolean {

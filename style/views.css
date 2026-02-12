@@ -113,7 +113,7 @@ aside .btn-icon.active {
 /* Locations View */
 .locations-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: var(--gap-lg);
 }
 
@@ -121,22 +121,79 @@ aside .btn-icon.active {
     background: var(--mars-soil);
     border-radius: var(--radius-3xl);
     padding: var(--spacing-2xl);
-    text-align: center;
     border: var(--border-width-lg) solid var(--mars-rust);
     border-bottom-width: var(--border-width-xl);
-    cursor: pointer;
     transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-md);
 }
 
 .location-card:hover {
-    transform: scale(1.05);
+    transform: translateY(-2px);
     border-color: var(--mars-rust-light);
 }
 
+.location-header {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-md);
+    padding-bottom: var(--spacing-md);
+    border-bottom: var(--border-width-md) solid var(--mars-rust);
+}
+
+.location-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+}
+
 .location-icon {
-    font-size: var(--font-size-8xl);
+    font-size: var(--font-size-6xl);
     color: var(--mars-text);
-    margin-bottom: var(--spacing-sm);
+}
+
+.location-info {
+    display: flex;
+    gap: var(--gap-md);
+    flex-wrap: wrap;
+}
+
+.location-stat {
+    background: var(--mars-rust);
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: var(--radius-2xl);
+    font-size: var(--font-size-base);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.location-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
+}
+
+.location-section h4 {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    color: var(--mars-rust-light);
+}
+
+.location-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-xs);
+}
+
+.location-list li {
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius-xl);
+    font-size: var(--font-size-base);
+    color: var(--text-secondary);
 }
 
 /* Rockets View */
