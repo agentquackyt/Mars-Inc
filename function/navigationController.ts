@@ -5,7 +5,7 @@
 
 import * as GUI from './gui';
 import type { GameSession } from './models/sessionModel';
-import { config } from './models/sessionModel';
+import { CONFIG } from './config';
 import type { Company, Colony } from './models/company';
 import type { Rocket } from './models/storage';
 import { SellRouteState, SpaceConnections } from './models/storage';
@@ -231,7 +231,7 @@ class NavigationController implements ViewManager {
 
             if (destination && rocket.initialTravelTime > 0 && rocketInfo) {
                 const progress = Math.max(0, Math.min(100, ((rocket.initialTravelTime - rocket.estimatedTravelTime) / rocket.initialTravelTime) * 100));
-                const remainingSol = rocket.estimatedTravelTime / config.minutesPerSol;
+                const remainingSol = rocket.estimatedTravelTime / CONFIG.game.minutesPerSol;
 
 
                 if (existingProgress) {
@@ -261,7 +261,7 @@ class NavigationController implements ViewManager {
                             })
                         ]
                     });
-                    const remainingSol = rocket.estimatedTravelTime / config.minutesPerSol;
+                    const remainingSol = rocket.estimatedTravelTime / CONFIG.game.minutesPerSol;
                     const progressText = GUI.p({
                         textContent: `${Math.round(progress)}% - ${remainingSol.toFixed(1)} sol remaining`,
                         classes: ['text-secondary'],
@@ -711,7 +711,7 @@ class NavigationController implements ViewManager {
                     })
                 ]
             });
-            const remainingSol = rocket.estimatedTravelTime / config.minutesPerSol;
+            const remainingSol = rocket.estimatedTravelTime / CONFIG.game.minutesPerSol;
             const progressText = GUI.p({
                 textContent: `${Math.round(progress)}% - ${remainingSol.toFixed(1)} sol remaining`,
                 classes: ['text-secondary'],

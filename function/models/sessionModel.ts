@@ -3,9 +3,8 @@ import { Company } from "./company";
 import { GoodsRegistry } from "./goodsRegistry";
 import { LocationType, SpaceLocation } from "./location";
 
-const config = {
-    minutesPerSol: 0.5
-}
+// Game configuration is now centralized in config.ts
+// Access via CONFIG.game.minutesPerSol
 
 class GameSession {
     sessionId: string;
@@ -97,4 +96,4 @@ type ExplorationMission = {
     targetType: LocationType;
 };
 
-export { GameSession, config };
+export { GameSession };

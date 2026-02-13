@@ -4,6 +4,7 @@ import { SpaceLocation } from "./location";
 import { getProductionModifierForLocation, SpaceLocation as SpaceLocationClass } from "./location";
 import { ItemPosition, Good } from "./good";
 import { GoodsRegistry } from "./goodsRegistry";
+import { CONFIG } from "../config";
 
 enum ModuleType {
     PRODUCTION = "production",
@@ -59,11 +60,12 @@ class InfrastructureModule extends Module {
     constructor(infrastructureId: InfrastructureType, initialLevel: number = 1) {
         super(ModuleType.INFRASTRUCTURE, initialLevel);
         this.infrastructureId = infrastructureId;
-        this.MAX_LEVEL = 499;
+        this.MAX_LEVEL = CONFIG.infrastructure.maxLevel;
     }
 
     public getWorkersNeeded(level?: number): number {
-        return Math.ceil((level ?? this.getLevel()) / 10)*2 + 1;
+        const lvl = level ?? this.getLevel();
+        return Math.ceil(lvl / CONFIG.infrastructure.rocketLab.workersPerLevelDivisor) * CONFIG.infrastructure.rocketLab.workersPerLevelMultiplier + CONFIG.infrastructure.rocketLab.workersBase;
     }
 
     public getModuleIdentifier(): InfrastructureType {
@@ -87,9 +89,9 @@ class InfrastructureModule extends Module {
         const lvl = level ?? this.getLevel();
         switch (this.infrastructureId) {
             case InfrastructureType.ROCKET_LAB:
-                return Math.floor(lvl / 10)+1; // Rockets allowed
+                return Math.floor(lvl / CONFIG.infrastructure.rocketLab.benefitLevelDivisor) + CONFIG.infrastructure.rocketLab.benefitBaseValue; // Rockets allowed
             case InfrastructureType.STOREROOM:
-                return 200 * Math.pow(1.2, (level ?? this.getLevel()) - 1); // Storage capacity
+                return CONFIG.infrastructure.storeroom.baseCapacity * Math.pow(CONFIG.infrastructure.storeroom.capacityScalingFactor, (level ?? this.getLevel()) - 1); // Storage capacity
             default:
                 return 0;
         }
@@ -145,7 +147,7 @@ class ProductionModule extends Module {
     }
 
     public getWorkersNeeded(level?: number): number {
-        return Math.ceil(this.getQuantityPerSol(level) / 10);
+        return Math.ceil(this.getQuantityPerSol(level) / CONFIG.production.workersPerProductionUnitDivisor);
     }
 
     public getModuleIdentifier(): number {

@@ -210,10 +210,11 @@ export function upgradeButton(
         ]
     });
 
+    // Don't pass onClick to button config if long-press is enabled - we'll handle it ourselves
     const btn = button({
         classes: ['btn', 'btn-upgrade'],
         children: [icon, costDiv],
-        onClick
+        onClick: (onClick && !enableLongPress) ? onClick : undefined
     });
 
     // Long-press functionality (only for level modals)
@@ -250,23 +251,19 @@ export function upgradeButton(
                 clearInterval(repeatTimer);
                 repeatTimer = null;
             }
-            // Keep isLongPress state for a moment to prevent the click handler from firing
-            setTimeout(() => {
-                isLongPress = false;
-            }, 50);
+            isLongPress = false;
         };
 
-        // Override the original onClick to check for long press
-        const originalOnClick = onClick;
-        btn.onclick = (event) => {
-            // Only fire on normal clicks, not during/after long press
+        // Handle click events: only fire on normal clicks (not during/after long press)
+        btn.addEventListener('click', (event) => {
             if (!isLongPress) {
-                originalOnClick(event);
+                onClick(event as MouseEvent);
             }
-        };
+        });
 
         // Handle mouse events
-        btn.addEventListener('mousedown', () => {
+        btn.addEventListener('mousedown', (event) => {
+            event.preventDefault(); // Prevent default to avoid unwanted behavior
             startLongPress();
         });
 

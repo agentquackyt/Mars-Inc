@@ -1,9 +1,10 @@
-import { GameSession, config } from "./models/sessionModel";
+import { GameSession } from "./models/sessionModel";
 import { Company, Colony, ProductionModule } from "./models/company";
 import { Rocket, SpaceConnections, SellRouteState, findSpaceConnection } from "./models/storage";
 import { SpaceLocation, LocationType } from "./models/location";
 import { Good, Category, ItemPosition } from "./models/good";
 import { GoodsRegistry } from "./models/goodsRegistry";
+import { CONFIG } from "./config";
 import * as GUI from './gui';
 import { hudController } from './hudController';
 
@@ -13,7 +14,7 @@ export class GameManager {
     session: GameSession;
     lastTickTime: number;
     lastRocketUpdateTime: number;
-    saveInterval: number = 60000; // Auto-save every minute
+    saveInterval: number = CONFIG.game.autoSaveIntervalMs;
     lastSaveTime: number;
 
     constructor(initialSession?: GameSession) {
@@ -86,7 +87,7 @@ export class GameManager {
         
         // Update Sol progress every 10 ticks
         if(this.tickCounter % 10 === 0) {
-            const solDurationMs = config.minutesPerSol * 60 * 1000;
+            const solDurationMs = CONFIG.game.minutesPerSol * 60 * 1000;
             
             // Initialize lastSolPassed if it's 0 (first run)
             if (this.lastSolPassed === 0) {
@@ -135,7 +136,6 @@ export class GameManager {
                 rocket.estimatedTravelTime -= deltaMinutes;
                 changed = true;
                 
-                console.log(`[Rocket Update] ${rocket.name}: ${rocket.estimatedTravelTime.toFixed(2)}min remaining of ${rocket.initialTravelTime.toFixed(2)}min total`);
                 
                 if (rocket.estimatedTravelTime <= 0) {
                     rocket.completeTravel();
@@ -176,8 +176,8 @@ export class GameManager {
 
     updateColonies(deltaTimeInMinutes: number): boolean {
          // Production logic
-         // production is per Sol. 1 Sol = config.minutesPerSol
-         const solsPassed = deltaTimeInMinutes / config.minutesPerSol;
+         // production is per Sol. 1 Sol = CONFIG.game.minutesPerSol
+         const solsPassed = deltaTimeInMinutes / CONFIG.game.minutesPerSol;
          
          if (solsPassed < 0.0001) return false; // No meaningful change
          this.session.company.colonies.forEach(colony => {
@@ -221,7 +221,7 @@ export class GameManager {
         );
 
         const fuelUnits = connection.fuelCost * 2;
-        const unlockMinutes = connection.travelTime * config.minutesPerSol * 2;
+        const unlockMinutes = connection.travelTime * CONFIG.game.minutesPerSol * 2;
         return { priceCredits, fuelUnits, unlockMinutes };
     }
 

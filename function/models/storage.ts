@@ -1,7 +1,7 @@
 import { ItemPosition, Good } from "./good";
 import { LocationType, SpaceLocation } from "./location";
 import { LevelSystem, type LevelProperty } from "./level";
-import { config } from "./sessionModel";
+import { CONFIG } from "../config";
 
 type SpaceConnection = { from: LocationType, to: LocationType, travelTime: number, fuelCost: number };
 
@@ -155,7 +155,7 @@ class Rocket extends StorageHolder {
         // For now, only allow valid connections
         if (connection) {
             this.destinationId = destinationId;
-            this.estimatedTravelTime = connection.travelTime * config.minutesPerSol;
+            this.estimatedTravelTime = connection.travelTime * CONFIG.game.minutesPerSol;
             this.initialTravelTime = this.estimatedTravelTime;
             return true;
         }

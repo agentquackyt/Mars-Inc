@@ -1,4 +1,5 @@
 import { LocationType } from "./location";
+import { CONFIG } from "../config";
 
 enum Category {
     Food = "Food",
@@ -64,10 +65,10 @@ class Good {
         this.id = id;
         this.name = name;
         this.category = category;
-        this.baseProductionPerSol = options.baseProductionPerSol ?? 1;
+        this.baseProductionPerSol = options.baseProductionPerSol ?? CONFIG.goods.defaultProductionPerSol;
         this.productionRequirement = options.productionRequirement ?? ProductionRequirement.EVERYWHERE;
-        this.marketBuyPrice = options.marketBuyPrice ?? 100;
-        this.marketSellPrice = options.marketSellPrice ?? 50;
+        this.marketBuyPrice = options.marketBuyPrice ?? CONFIG.goods.defaultBuyPrice;
+        this.marketSellPrice = options.marketSellPrice ?? CONFIG.goods.defaultSellPrice;
     }
 
     static fromData(data: any): Good {

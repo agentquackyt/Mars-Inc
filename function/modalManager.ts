@@ -12,7 +12,7 @@ import type { StorageHolder } from './models/storage';
 import { ItemPosition } from './models/good';
 import { LocationType } from './models/location';
 import type { GameSession } from './models/sessionModel';
-import { config } from './models/sessionModel';
+import { CONFIG } from './config';
 import { GoodsRegistry } from './models/goodsRegistry';
 
 export enum ModalType {
@@ -875,7 +875,7 @@ class ModalManager implements ModalController {
                         })
                     ]
                 });
-                const remainingSol = rocket.estimatedTravelTime / config.minutesPerSol;
+                const remainingSol = rocket.estimatedTravelTime / CONFIG.game.minutesPerSol;
                 const progressText = GUI.p({
                     textContent: `${Math.round(progress)}% complete - ${remainingSol.toFixed(1)} sol remaining`,
                     classes: ['text-secondary']
