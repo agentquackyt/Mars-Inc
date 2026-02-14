@@ -129,11 +129,6 @@ aside .btn-icon.active {
     gap: var(--gap-md);
 }
 
-.location-card:hover {
-    transform: translateY(-2px);
-    border-color: var(--mars-rust-light);
-}
-
 .location-header {
     display: flex;
     align-items: center;
@@ -145,11 +140,6 @@ aside .btn-icon.active {
 .location-header h3 {
     margin: 0;
     color: var(--text-primary);
-}
-
-.location-icon {
-    font-size: var(--font-size-6xl);
-    color: var(--mars-text);
 }
 
 .location-info {
@@ -176,7 +166,7 @@ aside .btn-icon.active {
 .location-section h4 {
     margin: 0;
     font-size: var(--font-size-lg);
-    color: var(--mars-rust-light);
+    color: var(--mars-text);
 }
 
 .location-list {
@@ -185,7 +175,27 @@ aside .btn-icon.active {
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--gap-xs);
+    gap: var(--gap-sm);
+}
+
+.colony-item {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-xl);
+    font-size: var(--font-size-base);
+    color: var(--text-primary);
+    display: flex;
+    flex-direction: column;
+    background: var(--mars-rust);
+}
+
+.colony-item .storage-item-name {
+    font-weight: 600;
+}
+
+.colony-item .storage-item-quantity {
+    color: var(--text-primary);
+    font-weight: 700;
+    margin-top: var(--gap-xs);
 }
 
 .location-list li {
@@ -193,82 +203,196 @@ aside .btn-icon.active {
     background: rgba(0, 0, 0, 0.2);
     border-radius: var(--radius-xl);
     font-size: var(--font-size-base);
-    color: var(--text-secondary);
+    color: var(--text-primary);
 }
 
 /* Rockets View */
 .rockets-list {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: var(--gap-lg);
 }
 
 .rocket-card {
     display: flex;
-    align-items: center;
-    gap: var(--gap-lg);
-    padding: var(--spacing-lg);
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+    position: relative;
 }
 
 .rocket-icon {
-    font-size: var(--font-size-7xl);
-    color: var(--mars-text);
+    font-size: 80px;
+    color: var(--mars-rust);
+    opacity: 0.15;
+    position: absolute;
+    right: 10px;
+    top: 15px;
+    transform: rotate(-15deg);
+    pointer-events: none;
 }
 
 .rocket-info {
-    flex: 1;
+    padding: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    position: relative;
+    z-index: 1;
 }
 
 .rocket-info h3 {
-    margin-bottom: var(--gap-xs);
+    margin-bottom: var(--gap-sm);
     color: var(--text-primary);
+    font-size: var(--font-size-xl);
+    font-weight: 700;
 }
 
 .rocket-status {
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-md);
     color: var(--mars-text);
-    margin-bottom: var(--gap-xs);
+    margin-bottom: var(--gap-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--gap-xs);
 }
 
-.rocket-level {
-    font-size: var(--font-size-md);
-    color: var(--action-upgrade);
+.rocket-actions {
+    padding: 0 var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
 }
+
+.rocket-actions .row {
+    display: flex;
+    gap: var(--gap-sm);
+}
+
+.rocket-actions .row .btn {
+    flex: 1;
+}
+
+/* Sol Progress Bar */
+.rocket-info .sol-progress-bar {
+    width: 60%;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    margin: var(--gap-sm) 0;
+}
+
+.sol-progress-fill {
+    height: 100%;
+    background: var(--text-primary);
+    transition: width 0.3s ease;
+    border-radius: var(--radius-xl);
+}
+
+.rocket-info .text-secondary,
+.colony-info .text-secondary {
+    font-size: var(--font-size-xs);
+    color: var(--mars-text);
+    margin-top: 4px;
+}
+
+/* Card Hover Effects */
+.rocket-card,
+.colony-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    animation: cardFadeIn 0.4s ease-out;
+}
+
+@keyframes cardFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 
 /* Colonies View */
 .colonies-list {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: var(--gap-lg);
 }
 
 .colony-card {
     display: flex;
-    align-items: center;
-    gap: var(--gap-lg);
-    padding: var(--spacing-lg);
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+    position: relative;
 }
 
+
 .colony-icon {
-    font-size: var(--font-size-7xl);
-    color: var(--mars-text);
+    font-size: 80px;
+    color: var(--mars-rust);
+    opacity: 0.15;
+    position: absolute;
+    right: 10px;
+    top: 15px;
+    transform: rotate(-5deg);
+    pointer-events: none;
 }
 
 .colony-info {
-    flex: 1;
+    padding: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    position: relative;
+    z-index: 1;
 }
 
 .colony-info h3 {
-    margin-bottom: var(--gap-xs);
+    margin-bottom: var(--gap-sm);
     color: var(--text-primary);
+    font-size: var(--font-size-xl);
+    font-weight: 700;
 }
 
-.colony-location,
-.colony-storage,
-.colony-level {
+.colony-location {
     font-size: var(--font-size-md);
     color: var(--mars-text);
-    margin-bottom: var(--gap-xs);
+    margin-bottom: var(--gap-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--gap-xs);
+}
+
+.colony-storage, .rocket-storage {
+    display: inline-block;
+    background: var(--mars-rust);
+    padding: 4px 12px;
+    border-radius: var(--radius-xl);
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    margin: var(--gap-xs) 0;
+}
+
+.colony-level, .rocket-level {
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    font-weight: 600;
+    display: inline-block;
+    background: var(--mars-rust);
+    padding: 4px 12px;
+    border-radius: var(--radius-xl);
+    margin-left: var(--gap-xs);
+}
+
+.colony-card .row {
+    padding: 0 var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
+    display: flex;
+    gap: var(--gap-sm);
+}
+
+.colony-card .row .btn {
+    flex: 1;
 }
 
 /* Warehouses View */
@@ -498,45 +622,52 @@ aside .btn-icon.active {
 /* Storage Section */
 .storage-section {
     width: 100%;
-    margin-top: var(--spacing-lg);
-    padding-top: var(--spacing-lg);
-    border-top: var(--border-width-sm) solid var(--mars-rust);
+    padding: var(--spacing-md) var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
 }
 
 .storage-empty {
-    font-size: var(--font-size-md);
+    font-size: var(--font-size-sm);
     color: var(--mars-text);
     font-style: italic;
+    text-align: center;
+    padding: var(--spacing-sm);
 }
 
 .storage-items-list {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: var(--gap-sm);
 }
 
 .storage-item {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: var(--gap-sm);
-    padding: var(--spacing-sm) var(--spacing-md);
-    background: var(--mars-soil);
-    border: var(--border-width-sm) solid var(--mars-rust);
-    border-radius: var(--radius-xl);
-    font-size: var(--font-size-md);
+    gap: 4px;
+    padding: var(--spacing-sm);
+    background: transparent;
+    border: 1px solid var(--mars-text);
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-sm);
+    transition: all 0.2s ease;
+}
+
+.storage-item:hover {
+    border-color: var(--mars-rust);
 }
 
 .storage-item-name {
     color: var(--text-primary);
     font-weight: 600;
+    font-size: var(--font-size-sm);
+    text-align: center;
 }
 
 .storage-item-quantity {
-    color: var(--mars-text);
-    font-weight: 500;
-    background: var(--mars-rust);
-    padding: 0.125rem var(--spacing-sm);
-    border-radius: var(--radius-sm);
+    color: var(--action-upgrade);
+    font-weight: 700;
+    font-size: var(--font-size-lg);
+    text-align: center;
 }
 
 /* Toast Notifications */
@@ -628,6 +759,15 @@ aside .btn-icon.active {
     .locations-list {
         grid-template-columns: 1fr;
     }
+
+    .rockets-list,
+    .colonies-list {
+        grid-template-columns: 1fr;
+    }
+
+    .storage-items-list {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
 }
 
 @media (max-width: 480px) {
@@ -635,8 +775,10 @@ aside .btn-icon.active {
         grid-template-columns: 1fr;
     }
 
-    .rocket-card,
-    .colony-card,
+    .storage-items-list {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
     .warehouse-card {
         flex-direction: column;
         text-align: center;

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mars Inc.</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tektur:wght@400..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=add,add_business,check,close,dining,factory,globe_location,globe_location_pin,home,home_app_logo,memory,oil_barrel,package_2,planet,rocket_launch,sell,settings,solar_power,spo2,upgrade,water_drop" />
+<link rel="stylesheet" crossorigin href="./index-73p1n3qf.css"><script type="module" crossorigin src="./index-r2aa4kmq.js"></script></head>
+
+<body>
+    <header class="row">
+        <div>
+            <h2>Mars Inc.</h2>
+            <h3 class="money-counter">2.6M$</h3>
+        </div>
+        <div class="sol-info">
+            <h3 class="sol-counter">Sol 1</h3>
+            <div class="sol-progress-bar">
+                <div class="sol-progress-fill"></div>
+            </div>
+        </div>
+        <button class="btn btn-icon"><span class="material-symbols-rounded">settings</span></button>
+    </header>
+    <div id="app">
+
+    </div>
+    <aside class="row">
+        <button class="btn btn-icon"><span class="material-symbols-rounded">home</span></button>
+        <button class="btn btn-icon"><span class="material-symbols-rounded">globe_location_pin</span></button>
+        <button class="btn btn-icon"><span class="material-symbols-rounded">rocket_launch</span></button>
+        <button class="btn btn-icon"><span class="material-symbols-rounded">planet</span></button>
+        <button class="btn btn-icon"><span class="material-symbols-rounded">add_business</span></button>
+    </aside>
+
+    <!-- Modal Overlay -->
+    <div class="modal-overlay hidden"></div>
+
+    <!-- Modals -->
+    <section class="notification-view modal hidden">
+        <div class="view-hotbar">
+            <span class="view-hotbar-title">Notifications</span>
+            <button class="btn btn-icon"><span class="material-symbols-rounded">close</span></button>
+        </div>
+        <div class="view-content">
+            <p>Lorem ipsum dolor sit amet consectetur, adipisicing elit. Repudiandae neque veniam corrupti error in
+                numquam iste ratione quo modi doloremque quisquam fugit necessitatibus et maiores reprehenderit
+                dolore expedita, aliquid animi.</p>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-upgrade">
+                <span class="material-symbols-rounded">check</span>
+                <h3>I understand</h3>
+            </button>
+        </div>
+    </section>
+
+    <section class="settings-view modal hidden">
+        <div class="view-hotbar">
+            <span class="view-hotbar-title">Settings</span>
+            <button class="btn btn-icon"><span class="material-symbols-rounded">close</span></button>
+        </div>
+        <div class="view-content">
+        </div>
+    </section>
+
+
+
+    <section class="lvl-view modal hidden">
+        <div class="view-hotbar">
+            <span class="view-hotbar-title">Rocket</span>
+            <button class="btn btn-icon"><span class="material-symbols-rounded">close</span></button>
+        </div>
+        <div class="view-content column">
+            <div class="row">
+                <p>Upgrade your rocket to reach new planets and explore the universe!</p>
+                <div class="lvl-view-card">
+                    <span class="lvl-label">Level</span>
+                    <span class="lvl-number">999</span>
+                </div>
+            </div>
+            <div class="lvl-table-wrap">
+                <table class="lvl-table">
+                    <tr>
+                        <td>Travel time</td>
+                        <td>2500 km/h <span class="lvl-upgrade-modifier">+500km/h</span></td>
+                    </tr>
+                    <tr>
+                        <td>Fuel</td>
+                        <td>5000 L <span class="lvl-upgrade-modifier">+100 L</span></td>
+                    </tr>
+                    <tr>
+                        <td>Crew Capacity</td>
+                        <td>10 <span class="lvl-upgrade-modifier">+2</span></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-upgrade">
+                <span class="material-symbols-rounded">sell</span>
+                <div class="upgrade-cost">
+                    <span class="upgrade-cost-label">Upgrade</span>
+                    <span class="upgrade-cost-amount">1000$</span>
+                </div>
+            </button>
+        </div>
+    </section>
+
+    <section class="lvl-view modal hidden">
+        <div class="view-hotbar">
+            <span class="view-hotbar-title">Colony</span>
+            <button class="btn btn-icon"><span class="material-symbols-rounded">close</span></button>
+        </div>
+        <div class="view-content column">
+            <div class="row">
+                <p>Upgrade your colony to increase population and resource production!</p>
+                <div class="lvl-view-card">
+                    <span class="lvl-label">Level</span>
+                    <span class="lvl-number">999</span>
+                </div>
+            </div>
+            <div class="lvl-table-wrap">
+                <table class="lvl-table">
+                    <tr>
+                        <td>Population</td>
+                        <td>25 <span class="lvl-upgrade-modifier">+5</span></td>
+                    </tr>
+                    <tr>
+                        <td>Storage</td>
+                        <td>300 <span class="lvl-upgrade-modifier">+50</span></td>
+                    </tr>
+                    <tr>
+                        <td>Building Slots</td>
+                        <td>6 <span class="lvl-upgrade-modifier">+1</span></td>
+                    </tr>
+                </table>
+            </div>
+            <div class="module-grid">
+                <div class="module-card filled">
+                    <span class="module-icon material-symbols-rounded">water_drop</span>
+                    <span class="module-label">Water Extractor</span>
+                </div>
+                <div class="module-card filled">
+                    <span class="module-icon material-symbols-rounded">solar_power</span>
+                    <span class="module-label">Solar Panel</span>
+                </div>
+                <div class="module-card filled">
+                    <span class="module-icon material-symbols-rounded">home_app_logo</span>
+                    <span class="module-label">Hydro Farm</span>
+                </div>
+                <div class="module-card"></div>
+                <div class="module-card"></div>
+                <div class="module-card"></div>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-upgrade">
+                <span class="material-symbols-rounded">sell</span>
+                <div class="upgrade-cost">
+                    <span class="upgrade-cost-label">Upgrade</span>
+                    <span class="upgrade-cost-amount">1000$</span>
+                </div>
+            </button>
+        </div>
+    </section>
+
+    
+</body>
+
+</html>

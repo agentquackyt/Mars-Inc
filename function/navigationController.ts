@@ -292,12 +292,8 @@ class NavigationController implements ViewManager {
         // Update stat values if they exist
         const statValues = GUI.queryAll<HTMLElement>('.stat-value', this.appContainer);
         if (statValues.length >= 4) {
-            // @ts-ignore - We know these exist based on the order they were created
-            statValues[0].textContent = session.rockets.length.toString();
-            // @ts-ignore
-            statValues[1].textContent = session.company.colonies.length.toString();
-            // @ts-ignore
-            statValues[2].textContent = GUI.formatMoney(session.company.getMoney());
+            // @ts-expect-error - statValues is NodeListOf<HTMLElement>, but we know the structure
+            statValues[3].textContent = GUI.formatMoney(session.company.getMoney());
         }
     }
 
@@ -452,12 +448,9 @@ class NavigationController implements ViewManager {
                 const header = GUI.div({
                     classes: ['location-header'],
                     children: [
-                        GUI.materialIcon('globe_location_pin', { classes: ['location-icon'] }),
                         GUI.heading(3, { textContent: location.name })
                     ]
                 });
-                locationCard.appendChild(header);
-
                 // Production modifier info
                 const productionInfo = GUI.div({
                     classes: ['location-info'],
@@ -468,57 +461,53 @@ class NavigationController implements ViewManager {
                         })
                     ]
                 });
-                locationCard.appendChild(productionInfo);
+                header.appendChild(productionInfo);
+                locationCard.appendChild(header);
 
                 // Colonies section
                 if (coloniesAtLocation.length > 0) {
                     const coloniesSection = GUI.div({ classes: ['location-section'] });
-                    coloniesSection.appendChild(
-                        GUI.heading(4, { textContent: `Colonies (${coloniesAtLocation.length})` })
-                    );
                     const coloniesList = GUI.createElement('ul', { classes: ['location-list'] });
+
+                    const productionSection = GUI.div({ classes: ['location-section'] });
+                    productionSection.appendChild(
+                        GUI.heading(4, { textContent: `Production` })
+                    );
+                    const productionList = GUI.createElement('div', { classes: ['storage-items-list'] });
+
                     coloniesAtLocation.forEach(colony => {
                         coloniesList.appendChild(
-                            GUI.createElement('li', { textContent: `${colony.name} (Level ${colony.getLevel()})` })
+                            GUI.div({
+                                classes: ['colony-item'],
+                                children: [
+                                    GUI.span({ textContent: colony.name, classes: ['storage-item-name'] }),
+                                    GUI.span({ textContent: `Level ${colony.getLevel()}`, classes: ['storage-item-quantity'] })
+                                ]
+                            })
                         );
+
+                        const colonyProduction = colony.getTotalProductionPerSol();
+                        colonyProduction.forEach(good => {
+                            productionList.appendChild(
+                                GUI.div({
+                                    classes: ['storage-item'],
+                                    children: [
+                                        GUI.span({ textContent: GoodsRegistry.get(good.goodId)?.name || 'Unknown', classes: ['storage-item-name'] }),
+                                        GUI.span({ textContent: `+${GUI.formatNumber(good.quantity)}/sol`, classes: ['storage-item-quantity'] })
+                                    ]
+
+                                })
+                            );
+                        });
                     });
                     coloniesSection.appendChild(coloniesList);
                     locationCard.appendChild(coloniesSection);
+
+                    productionSection.appendChild(productionList);
+                    locationCard.appendChild(productionSection);
                 }
 
-                // Rockets section
-                if (rocketsAtLocation.length > 0) {
-                    const rocketsSection = GUI.div({ classes: ['location-section'] });
-                    rocketsSection.appendChild(
-                        GUI.heading(4, { textContent: `Rockets Docked (${rocketsAtLocation.length})` })
-                    );
-                    const rocketsList = GUI.createElement('ul', { classes: ['location-list'] });
-                    rocketsAtLocation.forEach(rocket => {
-                        rocketsList.appendChild(
-                            GUI.createElement('li', { textContent: rocket.name })
-                        );
-                    });
-                    rocketsSection.appendChild(rocketsList);
-                    locationCard.appendChild(rocketsSection);
-                }
 
-                // Routes section
-                if (availableRoutes.length > 0) {
-                    const routesSection = GUI.div({ classes: ['location-section'] });
-                    routesSection.appendChild(
-                        GUI.heading(4, { textContent: 'Travel Routes' })
-                    );
-                    const routesList = GUI.createElement('ul', { classes: ['location-list'] });
-                    availableRoutes.forEach(route => {
-                        routesList.appendChild(
-                            GUI.createElement('li', {
-                                textContent: `${route.destination} (${route.travelTime} sol, ${GUI.formatNumber(route.fuelCost)} fuel)`
-                            })
-                        );
-                    });
-                    routesSection.appendChild(routesList);
-                    locationCard.appendChild(routesSection);
-                }
 
                 locationsList.appendChild(locationCard);
             });
