@@ -339,8 +339,10 @@ class NavigationController implements ViewManager {
         const activitySection = GUI.div({
             classes: ['activity-section'],
             children: [
-                GUI.heading(3, { textContent: 'Recent Activity' }),
-                GUI.p({ textContent: 'No recent activity to display.' })
+                GUI.heading(3, { textContent: 'Quick Start Guide' }),
+                GUI.p({ textContent: 'Go to the Colony view (planet icon) to start upgrading your colonies!' }),
+                GUI.p({ textContent: 'If you\'re colonies have produced goods, you now want to sell them at the World Market (store icon). ' }),
+                GUI.p({ textContent: 'To unlock new colonies, you must first build a Rocketry Lab (Infrastructure Module) and than produce rockets to explore new planets.' })
             ]
         });
         homeContent.appendChild(activitySection);

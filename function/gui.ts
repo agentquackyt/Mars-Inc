@@ -222,9 +222,11 @@ export function upgradeButton(
         let longPressTimer: number | null = null;
         let repeatTimer: number | null = null;
         let isLongPress = false;
+        let isMouseDown = false;
 
         const startLongPress = () => {
             isLongPress = false;
+            isMouseDown = true;
             // After 500ms, start repeating
             longPressTimer = window.setTimeout(() => {
                 isLongPress = true;
@@ -252,6 +254,14 @@ export function upgradeButton(
                 repeatTimer = null;
             }
             isLongPress = false;
+            isMouseDown = false;
+        };
+
+        // Global mouseup handler to ensure the timer stops even if mouse is released outside the button
+        const globalMouseUpHandler = (event: MouseEvent) => {
+            if (isMouseDown) {
+                stopLongPress();
+            }
         };
 
         // Handle click events: only fire on normal clicks (not during/after long press)
@@ -263,12 +273,14 @@ export function upgradeButton(
 
         // Handle mouse events
         btn.addEventListener('mousedown', (event) => {
-            event.preventDefault(); // Prevent default to avoid unwanted behavior
             startLongPress();
         });
 
         btn.addEventListener('mouseup', stopLongPress);
         btn.addEventListener('mouseleave', stopLongPress);
+
+        // Add global mouseup listener to catch releases outside the button
+        window.addEventListener('mouseup', globalMouseUpHandler);
 
         // Handle touch events for mobile
         btn.addEventListener('touchstart', (e) => {

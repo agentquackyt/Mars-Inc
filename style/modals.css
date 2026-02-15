@@ -193,3 +193,10 @@
 .section-title-spaced {
     margin-top: var(--spacing-4xl);
 }
+
+@media screen and (min-width: 1200px) {
+    .modal {
+        left: 32vw;
+        right: 32vw;
+    }
+}
