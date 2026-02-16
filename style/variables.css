@@ -1,63 +1,63 @@
 :root {
-    /* Tactical Intelligence - Midnight Base */
-    --ui-bg-light: #1f2937;
-    --ui-bg-dark: #0d1117;
-    --ui-bg-dark-bg: #010409;
-    --ui-bg-dark-bg-2: #0d1117;
-    --ui-bg-panel: #161b22;
-    --ui-bg-panel-alpha: rgba(22, 27, 34, 0.98);
-    --ui-bg-panel-semi: rgba(22, 27, 34, 0.6);
-    --text-primary: #f0f6fc;
-    --text-secondary: #8b949e;
-    --text-muted: #484f58;
-    --color-white: #ffffff;
+    /* NASA Industrial Base */
+    --ui-bg-light: #86a4d7;
+    --ui-bg-dark: #0B3D91;
+    --ui-bg-dark-bg: #082d6c;
+    --ui-bg-dark-bg-2: #103c87;
+    --ui-bg-panel: #162035;
+    --ui-bg-panel-alpha: rgba(22, 32, 53, 0.9);
+    --ui-bg-panel-semi: rgba(22, 32, 53, 0.5);
+    --text-primary: #F8F9FA;
+    --text-secondary: #AAB0C0;
+    --text-muted: #AAB0C0;
+    --color-white: white;
 
-    --ui-on-bg-dark-bg: #090c10;
-    --ui-border: #30363d; /* Subdued border for less visual noise */
+    --ui-on-bg-dark-bg: #071f49;
+    --ui-border: var(--ui-bg-dark);
 
-    /* Accent Colors - Derived from Intelligence HUD */
-    --mars-text: #3fb950; /* Tactical Green */
-    --mars-rust: #377655; /* Alert Red - used sparingly */
-    --mars-rust-light: #72ffa1;
-    --mars-soil: #21262d;
-    --color-primary: #49f852;
+    /* Mars & Environment */
+    --mars-text: #e9c4bc;
+    --mars-rust: #be482a;
+    --mars-rust-light: #d15638;
+    --mars-soil: #8c3629;
+    --color-primary: #9f3c23;
 
-    /* Tycoon Action Colors - Refined Terminal Aesthetic */
-    --action-upgrade: #238636;
-    --action-upgrade-border: #2ea043;
-    --action-upgrade-text: #ffffff;
-    --action-upgrade-hover: #2ea043;
+    /* Tycoon Action Colors */
+    --action-upgrade: #25a55a;
+    --action-upgrade-border: #1a7841;
+    --action-upgrade-text: #d9f3e3;
+    --action-upgrade-hover: #1a7841;
 
-    --action-unload: #da3633;
-    --action-unload-border: #f85149;
-    --action-unload-text: #ffffff;
-    --action-unload-hover: #b62324;
+    --action-unload: #e02929;
+    --action-unload-border: #a02020;
+    --action-unload-text: #ffd2d2;
+    --action-unload-hover: #c0392b;
 
-    --action-secondary: #1f6feb;
-    --action-secondary-border: #388bfd;
-    --action-secondary-text: #ffffff;
+    --action-secondary: #3498db;
+    --action-secondary-border: #2980b9;
+    --action-secondary-text: #d0e9f7;
 
-    --action-sell: #9e0303;
-    --action-sell-border: #d22222;
+    --action-sell: #c77b3a;
+    --action-sell-border: #a0622e;
 
-    --action-expensive: #54934f;
-    --currency-gold: #49f866;
-    --alert-danger: #f85149;
+    --action-expensive: #E67E22;
+    --currency-gold: #F1C40F;
+    --alert-danger: #E74C3C;
 
     /* Disabled States */
-    --disabled-bg: #161b22;
-    --disabled-border: #21262d;
+    --disabled-bg: #555;
+    --disabled-border: #333;
 
-    /* Shadow & Overlay - Added depth for a cockpit feel */
-    --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.5);
-    --shadow-button: inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    --shadow-small: 0 4px 12px rgba(0, 0, 0, 0.4);
-    --shadow-toast: 0 8px 16px rgba(0, 0, 0, 0.5);
-    --shadow-text: 0 1px 1px rgba(0, 0, 0, 0.5);
-    --overlay-bg: rgba(32, 32, 32, 0.8);
-    --overlay-dark: rgba(0, 0, 0, 0.5);
-    --overlay-darker: rgba(0, 0, 0, 0.2);
-    --overlay-light: rgba(240, 246, 252, 0.05);
+    /* Shadow & Overlay */
+    --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --shadow-button: 0 4px 0 rgba(0, 0, 0, 0.2);
+    --shadow-small: 0 4px 8px rgba(0, 0, 0, 0.3);
+    --shadow-toast: 0 2px 4px rgba(0, 0, 0, 0.2);
+    --shadow-text: 0 2px 4px rgba(0, 0, 0, 0.8);
+    --overlay-bg: rgba(0, 0, 0, 0.7);
+    --overlay-dark: rgba(0, 0, 0, 0.3);
+    --overlay-darker: rgba(0, 0, 0, 0.1);
+    --overlay-light: rgba(255, 255, 255, 0.05);
 
     /* Spacing - Padding & Margin */
     --spacing-xs: 0.25rem;
